@@ -153,8 +153,9 @@ export default async function MediaPage({ params }: Params) {
 
 function SectionHeading({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-semibold text-white">
-      {icon}
+    <h2 className="mb-4 flex items-center gap-2.5 font-display text-lg font-semibold text-white">
+      <span aria-hidden className="h-4 w-1 shrink-0 rounded-full bg-gradient-to-b from-waku-400 to-iris-500" />
+      {icon && <span className="text-waku-cinematic">{icon}</span>}
       {children}
     </h2>
   );

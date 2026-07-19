@@ -7,7 +7,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus, Info, Star, Heart, Layers, Calendar, TrendingUp } from "lucide-react";
 import type { MediaSummary } from "@/lib/anilist/types";
 import { toTenScale, stripHtml, formatCount, cn } from "@/lib/utils";
-import { tierForScore } from "@/lib/rating";
+import { ScoreBadge } from "@/components/media/score-badge";
 import { GenreTag } from "@/components/media/genre-tag";
 import { Button } from "@/components/ui/button";
 
@@ -50,7 +50,6 @@ export function HeroCarousel({ items, interval = 7000 }: HeroCarouselProps) {
   const banner = active.bannerImage || "";
   const cover = active.coverImage.extraLarge || active.coverImage.large || "";
   const score = toTenScale(active.averageScore);
-  const tier = tierForScore(score);
   const description = stripHtml(active.description);
   const accent = active.coverImage.color || "#3667ff";
 
@@ -171,12 +170,11 @@ export function HeroCarousel({ items, interval = 7000 }: HeroCarouselProps) {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {score != null && (
                   <span
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold tabular-nums backdrop-blur-md"
-                    style={{ background: tier.soft, color: tier.text, boxShadow: `inset 0 0 0 1px ${tier.color}55` }}
+                    className="inline-flex shrink-0 items-center gap-1.5"
                     title={`Community score ${score.toFixed(1)} / 10`}
                   >
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    {score.toFixed(1)}
+                    <ScoreBadge score={score} size="sm" />
+                    <span className="text-[11px] font-medium text-white/45">avg</span>
                   </span>
                 )}
                 {active.favourites != null && active.favourites > 0 && (
