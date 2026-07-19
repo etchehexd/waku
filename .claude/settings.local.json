@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la)",
+      "Bash(node -v)",
+      "Bash(npm -v)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npm view *)",
+      "Bash(npm audit *)",
+      "Bash(curl -s http://localhost:3000 -o /tmp/home.html -w \"bytes=%{size_download} code=%{http_code}\\\\n\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

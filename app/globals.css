@@ -1,0 +1,364 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 225 45% 4%;
+    --foreground: 213 30% 96%;
+    --border: 220 40% 60%;
+    --input: 220 30% 40%;
+    --ring: 224 100% 61%;
+
+    /* Accent palette — hue + saturation for the primary (waku) and secondary
+       (iris) accent families. The Tailwind `waku`/`iris` scales read these, so
+       overriding them on <html data-palette="…"> re-tints the whole app.
+       This default set reproduces the original Ocean blue + violet. */
+    --wk-h: 224;
+    --wk-s: 100%;
+    --ir-h: 252;
+    --ir-s: 100%;
+
+    /* Rating tier colors (also mirrored in lib/rating.ts) */
+    --tier-terrible: 275 60% 45%;
+    --tier-bad: 358 75% 58%;
+    --tier-meh: 28 92% 56%;
+    --tier-good: 46 96% 58%;
+    --tier-great: 142 62% 46%;
+    --tier-excellent: 150 70% 34%;
+    --tier-peak: 200 96% 62%;
+  }
+
+  /* Selectable palettes. Each only shifts the accent hue/saturation; the
+     status colors (green = completed, etc.) and the deep navy base are
+     intentionally left fixed so the UI stays legible and coherent. */
+  :root[data-palette="ocean"] { --wk-h: 224; --wk-s: 100%; --ir-h: 252; --ir-s: 100%; }
+  :root[data-palette="sky"] { --wk-h: 205; --wk-s: 95%; --ir-h: 232; --ir-s: 95%; }
+  :root[data-palette="teal"] { --wk-h: 190; --wk-s: 90%; --ir-h: 216; --ir-s: 92%; }
+  :root[data-palette="aqua"] { --wk-h: 174; --wk-s: 80%; --ir-h: 200; --ir-s: 78%; }
+  :root[data-palette="emerald"] { --wk-h: 158; --wk-s: 78%; --ir-h: 180; --ir-s: 72%; }
+  :root[data-palette="forest"] { --wk-h: 146; --wk-s: 72%; --ir-h: 168; --ir-s: 68%; }
+  :root[data-palette="lime"] { --wk-h: 96; --wk-s: 70%; --ir-h: 128; --ir-s: 66%; }
+  :root[data-palette="gold"] { --wk-h: 40; --wk-s: 92%; --ir-h: 22; --ir-s: 90%; }
+  :root[data-palette="ember"] { --wk-h: 18; --wk-s: 92%; --ir-h: 350; --ir-s: 88%; }
+  :root[data-palette="crimson"] { --wk-h: 352; --wk-s: 88%; --ir-h: 322; --ir-s: 82%; }
+  :root[data-palette="rose"] { --wk-h: 336; --wk-s: 90%; --ir-h: 300; --ir-s: 82%; }
+  :root[data-palette="sakura"] { --wk-h: 330; --wk-s: 90%; --ir-h: 292; --ir-s: 80%; }
+  :root[data-palette="fuchsia"] { --wk-h: 310; --wk-s: 82%; --ir-h: 280; --ir-s: 80%; }
+  :root[data-palette="grape"] { --wk-h: 280; --wk-s: 78%; --ir-h: 306; --ir-s: 76%; }
+  :root[data-palette="violet"] { --wk-h: 262; --wk-s: 90%; --ir-h: 288; --ir-s: 85%; }
+  :root[data-palette="indigo"] { --wk-h: 236; --wk-s: 88%; --ir-h: 262; --ir-s: 90%; }
+  :root[data-palette="mono"] { --wk-h: 220; --wk-s: 16%; --ir-h: 232; --ir-s: 24%; }
+
+  * {
+    @apply border-white/5;
+  }
+
+  html {
+    /* Waku is a dark-only UI. Telling the engine so is what keeps NATIVE
+       controls dark: <select> popups, <option> lists, number spinners, date
+       pickers and form scrollbars otherwise render in the OS light theme —
+       white plates with white-ish text sitting unreadable on our navy. */
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    /* Global safeguard against accidental horizontal overflow. `clip` (not
+       `hidden`) is deliberate: `overflow-x: hidden` would force `overflow-y`
+       to `auto` and turn the body into the scroll container, breaking
+       `window.scrollY`. `clip` prevents horizontal overflow without creating a
+       scroll container. This is a backstop only — layouts are fixed at source. */
+    overflow-x: clip;
+  }
+
+  body {
+    @apply bg-abyss-950 text-foreground antialiased;
+    max-width: 100%;
+    overflow-x: clip;
+    /* A quiet, STATIC accent wash — just enough tint at the corners so the
+       canvas isn't flat black, driven by the palette vars so it re-tints with
+       the chosen theme. Deliberately low-opacity and unanimated: calm, not
+       attention-seeking. */
+    background-image:
+      radial-gradient(900px 520px at 82% -10%, hsl(var(--wk-h) var(--wk-s) 58% / 0.12), transparent 62%),
+      radial-gradient(720px 460px at 4% 2%, hsl(var(--ir-h) var(--ir-s) 60% / 0.08), transparent 58%),
+      radial-gradient(1100px 720px at 50% 122%, hsl(var(--wk-h) var(--wk-s) 28% / 0.20), transparent 62%);
+    background-attachment: fixed;
+    font-feature-settings: "ss01", "cv01";
+  }
+
+  /* Motion is an enhancement, never a requirement. When the OS asks for
+     reduced motion, collapse every CSS animation/transition to a near-instant
+     step (framer-motion components handle themselves via useReducedMotion). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  ::selection {
+    @apply bg-waku-500/40 text-white;
+  }
+
+  /* Chrome paints autofilled fields with a hard-coded near-white plate and
+     dark text, which is unreadable here and can't be overridden by
+     background-color alone. The inset shadow repaints the plate, and
+     text-fill-color repaints the glyphs. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: #eef4ff;
+    -webkit-box-shadow: 0 0 0 1000px #131a33 inset;
+    box-shadow: 0 0 0 1000px #131a33 inset;
+    caret-color: #eef4ff;
+    transition: background-color 9999s ease-out 0s;
+  }
+
+  /* Native option lists render as their own OS popup; give them an explicit
+     dark plate so they never fall back to white. */
+  option,
+  optgroup {
+    background-color: #0c1122;
+    color: #eef4ff;
+  }
+
+  /* Custom scrollbar — subtle, glassy */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(120, 150, 220, 0.22);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(120, 150, 220, 0.4);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /*
+   * LIQUID GLASS — the signature surface.
+   * Layered translucency + saturated backdrop blur, a specular top edge,
+   * an inner shadow for depth, and a diagonal sheen overlay.
+   */
+  .glass {
+    position: relative;
+    /* A solid deep-navy floor keeps content readable; the white top stops
+       give it the refractive glass feel without becoming see-through. */
+    background:
+      linear-gradient(
+        160deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 24%,
+        rgba(255, 255, 255, 0.02) 100%
+      ),
+      rgba(13, 19, 40, 0.66);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px -8px rgba(5, 10, 30, 0.6),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35);
+  }
+
+  /*
+   * Opaque glass for floating menus, dropdowns & popovers — these sit over
+   * arbitrary content, so they need a near-solid background to stay legible.
+   */
+  .glass-menu {
+    position: relative;
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 40%),
+      rgba(11, 16, 34, 0.94);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 24px 60px -18px rgba(0, 0, 0, 0.8),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14);
+  }
+
+  /* A restrained top-edge sheen — a soft highlight for depth, not a bright
+     refractive streak. Lower opacity, no screen blend. */
+  .glass-sheen::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      130deg,
+      rgba(255, 255, 255, 0.09) 0%,
+      rgba(255, 255, 255, 0.02) 30%,
+      rgba(255, 255, 255, 0) 52%
+    );
+    pointer-events: none;
+  }
+
+  /* Interactive glass — lifts, brightens, and its specular edge sharpens */
+  .glass-interactive {
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.35s ease;
+    will-change: transform;
+  }
+  .glass-interactive:hover {
+    /* Restrained lift — a gentle rise + a soft, low-opacity accent edge. No
+       bright halo ring; hover should feel responsive, not luminous. */
+    transform: translateY(-3px);
+    border-color: hsl(var(--wk-h) var(--wk-s) 70% / 0.32);
+    box-shadow:
+      0 18px 46px -22px rgba(4, 8, 26, 0.7),
+      0 4px 20px -12px hsl(var(--wk-h) var(--wk-s) 55% / 0.3),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.16);
+  }
+
+  /* Strong glass for the navbar / floating chrome */
+  .glass-chrome {
+    background: linear-gradient(
+      180deg,
+      rgba(16, 22, 46, 0.82) 0%,
+      rgba(9, 13, 28, 0.76) 100%
+    );
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 16px 50px -18px rgba(3, 6, 20, 0.7),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /*
+   * The one input treatment for the whole app: a translucent dark well on the
+   * navy base (never a light plate), high-contrast text, legible placeholders
+   * and an unmistakable focus ring. Compose with sizing/padding utilities.
+   */
+  .input-field {
+    @apply w-full rounded-xl bg-abyss-950/50 text-white ring-1 ring-inset ring-white/10 transition-colors;
+    @apply placeholder:text-white/40;
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-waku-400/80;
+    @apply hover:bg-abyss-950/60;
+    caret-color: #6ea8ff;
+    color-scheme: dark;
+  }
+  .input-field:disabled {
+    @apply cursor-not-allowed opacity-45;
+  }
+  /* Strip the number spinners — steppers are provided in the UI instead. */
+  .input-field[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .input-field[type="number"]::-webkit-inner-spin-button,
+  .input-field[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-br from-white via-waku-100 to-waku-cinematic bg-clip-text text-transparent;
+  }
+
+  /* Soft ring behind the rating dial / key CTAs — restrained, accent-tinted. */
+  .ring-glow {
+    box-shadow:
+      0 0 0 1px hsl(var(--wk-h) var(--wk-s) 60% / 0.28),
+      0 6px 26px -12px hsl(var(--wk-h) var(--wk-s) 55% / 0.4);
+  }
+
+  /* A very soft accent shadow — used sparingly on a primary action. Quiet at
+     rest; it should read as depth, not a glow. */
+  .glow-accent {
+    box-shadow: 0 3px 16px -8px hsl(var(--wk-h) var(--wk-s) 58% / 0.32);
+  }
+
+  /* Accent gradient text — for the odd headline numeral. Kept muted. */
+  .text-accent-gradient {
+    background-image: linear-gradient(
+      120deg,
+      hsl(var(--wk-h) var(--wk-s) 74%) 0%,
+      hsl(var(--ir-h) var(--ir-s) 74%) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Accent-filled pill for a single small emphasis (e.g. a nudge icon). */
+  .accent-fill {
+    background-image: linear-gradient(
+      120deg,
+      hsl(var(--wk-h) var(--wk-s) 54%) 0%,
+      hsl(var(--ir-h) var(--ir-s) 58%) 100%
+    );
+    color: #fff;
+  }
+
+  /* Skeleton shimmer for loading states */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+    animation: shimmer 2.2s infinite;
+  }
+
+  /* Horizontal media rails — hide scrollbar, keep snap.
+     `overflow-y: hidden` + `overscroll-behavior-x: contain` stops a rail from
+     trapping vertical wheel/trackpad intent (which must scroll the page) or
+     chaining horizontal overscroll to the document. */
+  .rail {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+  }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .mask-fade-r {
+    -webkit-mask-image: linear-gradient(to right, black 88%, transparent 100%);
+    mask-image: linear-gradient(to right, black 88%, transparent 100%);
+  }
+  .drag-none {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+}

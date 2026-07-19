@@ -1,0 +1,13 @@
+# Netlify build config for this Next.js app.
+# The official Next.js runtime (@netlify/plugin-nextjs) is auto-installed by
+# Netlify when it detects Next.js — it turns the API routes and server-rendered
+# pages (/api/discover, /media/[id], …) into serverless functions so the app
+# actually runs, rather than being served as dead static files.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Pin Node so local and Netlify builds match.
+  NODE_VERSION = "20"
