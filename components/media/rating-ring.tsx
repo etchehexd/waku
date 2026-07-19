@@ -149,17 +149,9 @@ export function RatingRing({ value, onChange, onCommit, size = 176, className }:
           transform={`rotate(-90 ${cx} ${cx})`}
           style={{ transition: dragging ? "none" : "stroke-dashoffset 0.35s cubic-bezier(0.22,1,0.36,1)" }}
         />
-        {/* gold outline ring for a perfect 10 */}
+        {/* gold outline ring for a perfect 10 — static, no pulse */}
         {perfect && (
-          <circle
-            cx={cx}
-            cy={cx}
-            r={goldR}
-            fill="none"
-            stroke={GOLD}
-            strokeWidth={2.5}
-            className="animate-gold-ring"
-          />
+          <circle cx={cx} cy={cx} r={goldR} fill="none" stroke={GOLD} strokeWidth={2.5} opacity={0.85} />
         )}
         {/* knob */}
         <circle
@@ -175,10 +167,10 @@ export function RatingRing({ value, onChange, onCommit, size = 176, className }:
 
       {/* center readout */}
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-semibold tabular-nums leading-none" style={{ color }}>
+        <span className="text-5xl font-bold tabular-nums leading-none tracking-tight" style={{ color }}>
           {value.toFixed(1)}
         </span>
-        <span className="mt-1.5 text-[10px] font-medium uppercase tracking-widest text-white/35">
+        <span className="mt-2 text-[10px] font-medium uppercase tracking-widest text-white/35">
           drag to rate
         </span>
       </div>

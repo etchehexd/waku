@@ -134,30 +134,31 @@ export function RatingPrompt() {
             </div>
 
             {/* ring + controls */}
-            <div className="flex flex-col items-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5">
-              <p className="mb-4 text-center text-sm text-white/55">
-                {previous != null ? "Drag to change your score" : "How would you rate it?"}
-              </p>
-
+            <div className="flex flex-col items-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
               <div className="relative flex items-center justify-center">
-                {/* soft glow behind the ring, tinted by the live score */}
+                {/* soft glow behind the ring, tinted by the live score — kept
+                    subtle so the dial reads clean, not neon */}
                 <div
-                  className="pointer-events-none absolute h-40 w-40 rounded-full opacity-40 blur-2xl transition-colors duration-300"
+                  className="pointer-events-none absolute h-36 w-36 rounded-full opacity-20 blur-2xl transition-colors duration-300"
                   style={{ background: tier.color }}
                   aria-hidden
                 />
                 <RatingRing value={draft} onChange={setDraft} onCommit={setDraft} />
               </div>
 
-              {/* Live verdict — names the tier so the number means something,
-                  and announces changes to screen readers as you drag. */}
-              <p className="mt-3 text-sm font-semibold" style={{ color: tier.text }} aria-live="polite">
+              {/* Live verdict — the tier name as the bold hero, so the number
+                  actually means something. Announces changes to screen readers. */}
+              <p
+                className="mt-4 font-display text-2xl font-bold leading-none tracking-tight"
+                style={{ color: tier.text }}
+                aria-live="polite"
+              >
                 {tier.label}
                 <span className="sr-only"> — {draft.toFixed(1)} out of 10</span>
               </p>
 
               {previous != null && (
-                <p className="mt-1 text-xs text-white/45">
+                <p className="mt-1.5 text-xs text-white/45">
                   Previously{" "}
                   <span className="font-semibold tabular-nums text-white/75">{previous.toFixed(1)}</span>
                 </p>

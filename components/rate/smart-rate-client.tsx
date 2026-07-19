@@ -187,7 +187,7 @@ export function SmartRateClient() {
         />
       </div>
 
-      <h1 className="mb-5 text-balance text-center font-display text-xl font-bold leading-snug text-white sm:text-2xl">
+      <h1 className="mb-5 text-balance text-center font-display text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl">
         Which did you enjoy more?
       </h1>
 
