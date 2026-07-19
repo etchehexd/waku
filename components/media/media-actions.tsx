@@ -6,6 +6,7 @@ import type { MediaSummary } from "@/lib/anilist/types";
 import { useWaku, STATUS_LABEL } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
 import { useMounted } from "@/lib/use-mounted";
+import { useAuthGate } from "@/lib/use-auth-gate";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { RatingChip } from "./rating-chip";
@@ -25,6 +26,7 @@ export function MediaActions({ media }: { media: MediaSummary }) {
   const setProgress = useWaku((s) => s.setProgress);
   const setStatus = useWaku((s) => s.setStatus);
   const toggleFavorite = useWaku((s) => s.toggleFavorite);
+  const { gated, guard } = useAuthGate();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Still-airing anime with no published episode count: infer the released
@@ -45,6 +47,21 @@ export function MediaActions({ media }: { media: MediaSummary }) {
   // Pre-hydration: render the CTA shell so layout doesn't jump.
   if (!mounted) {
     return <div className="h-12 w-full max-w-xs animate-pulse rounded-full bg-white/5" />;
+  }
+
+  // Signed out (with cloud auth on): adding/tracking/rating is gated — send the
+  // user to sign in rather than letting them edit a library they can't keep.
+  if (gated) {
+    return (
+      <Button
+        variant="accent"
+        size="md"
+        className="w-full px-6 glow-accent sm:w-auto"
+        onClick={() => guard(() => {})}
+      >
+        <Plus className="h-4 w-4" /> Sign in to track &amp; rate
+      </Button>
+    );
   }
 
   if (!inList || !entry) {

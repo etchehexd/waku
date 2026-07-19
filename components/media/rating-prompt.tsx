@@ -6,6 +6,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { useWaku } from "@/lib/store";
+import { useAuthGate } from "@/lib/use-auth-gate";
 import { tierForScore } from "@/lib/rating";
 import { SMART_MIN_REFERENCES } from "@/lib/smart-rating";
 import { RatingRing } from "./rating-ring";
@@ -23,6 +24,7 @@ export function RatingPrompt() {
   const entries = useWaku((s) => s.entries);
   const rateById = useWaku((s) => s.rateById);
   const clearPendingRate = useWaku((s) => s.clearPendingRate);
+  const { gated } = useAuthGate();
 
   const entry = pendingRate != null ? entries[pendingRate] : undefined;
   const previous = entry?.score ?? null;
@@ -66,7 +68,7 @@ export function RatingPrompt() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pendingRate, clearPendingRate]);
 
-  const open = pendingRate != null && !!entry;
+  const open = pendingRate != null && !!entry && !gated;
   const smartUnlocked = referenceCount >= SMART_MIN_REFERENCES;
   const tier = tierForScore(draft);
 

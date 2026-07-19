@@ -12,6 +12,7 @@ import { STATUS_META } from "./status-meta";
 import { GenreDot } from "./genre-tag";
 import { ScoreBadge } from "./score-badge";
 import { useMounted } from "@/lib/use-mounted";
+import { useAuthGate } from "@/lib/use-auth-gate";
 import { toTenScale, cn, timeUntil } from "@/lib/utils";
 
 interface MediaCardProps {
@@ -160,6 +161,7 @@ function CenterAdd({
   statusMeta: { icon: typeof Plus; color: string; soft: string } | null;
 }) {
   const setStatus = useWaku((s) => s.setStatus);
+  const { gated, guard } = useAuthGate();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -170,11 +172,13 @@ function CenterAdd({
     <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
       <button
         ref={btnRef}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => guard(() => setOpen((v) => !v))}
         aria-label={
-          inList && entry
-            ? `In list: ${STATUS_LABEL[entry.status]} — change status`
-            : `Add ${cardTitle} to list`
+          gated
+            ? `Sign in to add ${cardTitle} to your library`
+            : inList && entry
+              ? `In list: ${STATUS_LABEL[entry.status]} — change status`
+              : `Add ${cardTitle} to list`
         }
         aria-haspopup="menu"
         aria-expanded={open}
