@@ -101,8 +101,14 @@ export interface BrowseVars {
 
 export async function browse(vars: BrowseVars): Promise<PageResult<MediaSummary>> {
   return request<PageResult<MediaSummary>>(BROWSE_QUERY, vars, {
-    // Cache homepage rails at the edge for a short while.
-    next: { revalidate: 60 * 30 },
+    // Discover results depend ENTIRELY on `vars` (sort / filters / page), so
+    // they must never be cached. AniList is a GraphQL POST — same URL every
+    // time, with the filters in the request BODY — and Next's fetch Data Cache
+    // keys POST requests unreliably, so a shared cache entry ends up serving the
+    // FIRST filter's result for every other filter. That's invisible in dev
+    // (the Data Cache is off) but in production it made every sort/genre/format
+    // return the same list. Always fetch fresh; `request()` handles backoff.
+    cache: "no-store",
   } as RequestInit);
 }
 

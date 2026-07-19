@@ -123,7 +123,10 @@ export async function GET(req: NextRequest) {
     const data = await browse(vars);
     return NextResponse.json(
       { media: data.Page.media, pageInfo: data.Page.pageInfo },
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } },
+      // Never let a shared/CDN cache answer a different filter from a stale
+      // entry — results are fully determined by the query params, and the edge
+      // cache was serving one response across query strings in production.
+      { headers: { "Cache-Control": "no-store" } },
     );
   } catch (err) {
     console.error("[discover] browse failed:", err);
