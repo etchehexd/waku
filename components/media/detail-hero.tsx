@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { Star, Heart, Film, Calendar, Layers, Clock } from "lucide-react";
+import { Heart, Film, Calendar, Layers, Clock } from "lucide-react";
 import type { MediaDetail } from "@/lib/anilist/types";
 import { toTenScale, formatCount } from "@/lib/utils";
-import { tierForScore } from "@/lib/rating";
+import { ScoreBadge } from "./score-badge";
 import { MediaActions } from "./media-actions";
 import { AiringCountdown } from "./airing-countdown";
 import { GenreTag } from "./genre-tag";
@@ -21,7 +21,6 @@ export function DetailHero({ media }: { media: MediaDetail }) {
   const banner = media.bannerImage || media.coverImage.extraLarge || "";
   const cover = media.coverImage.extraLarge || media.coverImage.large || "";
   const score = toTenScale(media.averageScore);
-  const tier = tierForScore(score);
   const airing = media.nextAiringEpisode;
   const unitCount = media.episodes
     ? `${media.episodes} ep`
@@ -113,12 +112,11 @@ export function DetailHero({ media }: { media: MediaDetail }) {
             <div className="mt-3.5 flex flex-wrap items-center gap-2">
               {score != null && (
                 <span
-                  className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md"
-                  style={{ background: tier.soft, color: tier.text, boxShadow: `inset 0 0 0 1px ${tier.color}55` }}
+                  className="inline-flex items-center gap-1.5"
                   title={`Community score: ${score.toFixed(1)} out of 10`}
                 >
-                  <Star className="h-3.5 w-3.5 fill-current" />
-                  <span className="font-semibold tabular-nums">{score.toFixed(1)}</span>
+                  <ScoreBadge score={score} size="sm" />
+                  <span className="text-[11px] font-medium text-white/45">avg</span>
                 </span>
               )}
               {media.favourites != null && media.favourites > 0 && (

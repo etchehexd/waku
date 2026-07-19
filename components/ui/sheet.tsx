@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,14 @@ export function Sheet({
   children: React.ReactNode;
   className?: string;
 }) {
+  // Portal target. The sheet is `position: fixed`, but if ANY ancestor has a
+  // backdrop-filter/filter/transform (every `.glass` surface does) that
+  // ancestor becomes the containing block AND its `overflow: hidden` clips the
+  // sheet. Rendering into <body> escapes that entirely, so a sheet opened from
+  // inside a glass panel is never cut off or trapped behind it.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -43,7 +52,9 @@ export function Sheet({
     };
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -92,7 +103,8 @@ export function Sheet({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

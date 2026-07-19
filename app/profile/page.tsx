@@ -16,6 +16,7 @@ import { STATUS_META } from "@/components/media/status-meta";
 import { RatingChip } from "@/components/media/rating-chip";
 import { Button } from "@/components/ui/button";
 import { ProfileAuth } from "@/components/profile/profile-auth";
+import { SignInView } from "@/components/auth/sign-in-view";
 import { useWakuAuth } from "@/lib/supabase/sync";
 import { OtakuLevel, type OtakuLevelData } from "@/components/profile/otaku-level";
 import { SettingsSheet } from "@/components/profile/settings-sheet";
@@ -58,7 +59,7 @@ export default function ProfilePage() {
   const entries = useEntriesList();
   const profile = useWaku((s) => s.profile);
   const updateProfile = useWaku((s) => s.updateProfile);
-  const { user: authUser } = useWakuAuth();
+  const { enabled: authEnabled, user: authUser, loading: authLoading } = useWakuAuth();
   const [editing, setEditing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -177,6 +178,12 @@ export default function ProfilePage() {
   const statusSegments = STATUS_ORDER.filter((s) => stats.byStatus[s] > 0);
 
   if (!mounted) return <Shell />;
+
+  // Gate the ENTIRE page behind sign-in when cloud auth is available. Signed
+  // out, the Profile page IS the sign-in page — no profile box, no otaku rank,
+  // no stats — and becomes the profile the moment the user signs in.
+  if (authEnabled && authLoading) return <Shell />;
+  if (authEnabled && !authUser) return <SignInView />;
 
   return (
     <div className="container max-w-5xl pt-20 md:pt-24">
