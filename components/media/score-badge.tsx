@@ -1,7 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { formatScore } from "@/lib/utils";
+import { cn, formatScore } from "@/lib/utils";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 
 interface ScoreBadgeProps {
@@ -9,54 +8,53 @@ interface ScoreBadgeProps {
   score?: number | null;
   size?: "sm" | "md" | "lg";
   /**
-   * Frosted dark plate behind the number so it stays legible over busy
-   * artwork. On by default; turn off when the badge already sits on a quiet
-   * surface (dialogs, glass panels).
+   * Frosted dark plate behind the numeral so it stays legible over busy
+   * artwork. On by default; turn off when it already sits on a quiet surface.
    */
   plate?: boolean;
   className?: string;
 }
 
 const SIZES = {
-  sm: { box: 30, font: "text-[12px]" },
-  md: { box: 42, font: "text-sm" },
-  lg: { box: 72, font: "text-2xl" },
+  sm: { text: "text-[13px]", pad: "px-1.5 pb-[3px] pt-0.5", radius: "rounded-md", rule: 2 },
+  md: { text: "text-xl", pad: "px-2 pb-1 pt-0.5", radius: "rounded-lg", rule: 2 },
+  lg: { text: "text-4xl", pad: "px-3 pb-1.5 pt-1", radius: "rounded-xl", rule: 3 },
 };
 
 /**
- * A quiet, editorial score badge: a flat tier-tinted disc with a thin ring and
- * the number. Deliberately NOT a glowing gradient progress ring — no arc, no
- * bloom, no text glow — so a wall of scores reads calm and typographic rather
- * than shiny. The tier color still conveys quality at a glance.
+ * Editorial-numeral score: a confident, tier-colored number underlined by a
+ * thin tier-colored rule — magazine-like, flat, and legible. Deliberately not a
+ * glowing ring or gradient disc; the number is the object and its tier color +
+ * baseline rule carry the "how good" at a glance without any shine.
  */
 export function ScoreBadge({ score, size = "md", plate = true, className }: ScoreBadgeProps) {
   const tier = tierForScore(score);
   const perfect = isPerfect(score);
   const dim = SIZES[size];
-  const ring = perfect ? GOLD : tier.color;
+  const rule = perfect ? GOLD : tier.color;
 
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center rounded-full",
+        "inline-flex items-center justify-center leading-none",
+        dim.radius,
+        dim.pad,
         plate && "backdrop-blur-sm",
         className,
       )}
       style={{
-        width: dim.box,
-        height: dim.box,
-        // Plate = a calm dark disc for legibility over art; otherwise a soft
-        // tier tint. Either way flat — no radial gradient.
-        background: plate ? "rgba(8,11,20,0.7)" : tier.soft,
-        boxShadow: `inset 0 0 0 1px ${ring}${perfect ? "cc" : "55"}${
-          plate ? ", 0 1px 3px -1px rgba(0,0,0,0.5)" : ""
-        }`,
+        background: plate ? "rgba(8,11,20,0.68)" : "transparent",
+        boxShadow: plate ? "0 1px 3px -1px rgba(0,0,0,0.5)" : undefined,
       }}
       title={score != null ? formatScore(score) : "Unrated"}
     >
       <span
-        className={cn("font-semibold tabular-nums leading-none", dim.font)}
-        style={{ color: tier.text }}
+        className={cn("font-bold tabular-nums tracking-tight", dim.text)}
+        style={{
+          color: score != null ? tier.text : "rgba(255,255,255,0.4)",
+          borderBottom: `${dim.rule}px solid ${score != null ? rule : "rgba(255,255,255,0.2)"}`,
+          paddingBottom: "1px",
+        }}
       >
         {score != null ? formatScore(score) : "–"}
       </span>

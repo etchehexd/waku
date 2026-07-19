@@ -142,35 +142,26 @@ export default function LibraryPage() {
         <EmptyState />
       ) : (
         <>
-          {/* Primary axis — Anime / Manga / Light Novels segmented tabs. */}
-          <div className="mb-2.5">
-            <MediaTabs value={mediaType} counts={typeCounts} onSelect={setMediaType} />
-          </div>
-
-          {/* status summary (also the status filter) */}
-          <div className="mb-3">
-            <LibrarySummary entries={inType} active={statusTab} onSelect={setStatusTab} />
-          </div>
-
-          {/* Continue — only when not actively searching/filtering */}
+          {/* Jump back in — active titles up top for one-tap resume. */}
           {!isFiltering && continueEntries.length > 0 && (
-            <section className="mb-4">
-              <div className="mb-2 flex items-center gap-2">
-                <PlayCircle className="h-4 w-4 text-waku-cinematic" />
-                <h2 className="font-display text-xs font-semibold uppercase tracking-wider text-white/70">
-                  Continue
-                </h2>
-                <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/55">
-                  {continueEntries.length}
-                </span>
-              </div>
+            <section className="mb-6">
+              <SectionLabel icon={<PlayCircle className="h-4 w-4" />} title="Jump back in" count={continueEntries.length} />
               <ContinueRail entries={continueEntries} />
             </section>
           )}
 
-          {/* toolbar — search + sort + filters (deliberately not sticky) */}
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+          {/* Control deck — type, search, sort & filters grouped into one tidy
+              panel so the collection is easy to slice without a stack of bars. */}
+          <div className="mb-4 rounded-3xl bg-white/[0.03] p-2.5 ring-1 ring-inset ring-white/8">
+            <div className="flex flex-wrap items-center gap-2">
+              <MediaTabs value={mediaType} counts={typeCounts} onSelect={setMediaType} />
+              <div className="ml-auto flex items-center gap-2">
+                <SortMenu value={sort} onChange={setSort} />
+                <FilterPopover filters={filters} setFilters={setFilters} />
+              </div>
+            </div>
+
+            <div className="relative mt-2.5">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <input
                 value={search}
@@ -189,9 +180,9 @@ export default function LibraryPage() {
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <SortMenu value={sort} onChange={setSort} />
-              <FilterPopover filters={filters} setFilters={setFilters} />
+
+            <div className="mt-2.5 border-t border-white/8 pt-2.5">
+              <LibrarySummary entries={inType} active={statusTab} onSelect={setStatusTab} />
             </div>
           </div>
 
@@ -279,6 +270,30 @@ export default function LibraryPage() {
             </p>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function SectionLabel({
+  title,
+  count,
+  icon,
+}: {
+  title: string;
+  count?: number;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-2.5 flex items-center gap-2">
+      {icon && <span className="text-waku-cinematic">{icon}</span>}
+      <h2 className="font-display text-[13px] font-semibold uppercase tracking-wider text-white/70">
+        {title}
+      </h2>
+      {count != null && (
+        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-white/55">
+          {count}
+        </span>
       )}
     </div>
   );
