@@ -75,29 +75,19 @@ export function DiscoverClient() {
     if (debounced.length >= 2) addRecent(debounced);
   }, [debounced, addRecent]);
 
-  // Sync filters + settled search → URL.
+  // Reflect the active filters in the address bar WITHOUT a Next navigation.
+  // `history.replaceState` updates the URL cosmetically only — it never re-runs
+  // the route/Suspense, never updates `useSearchParams`, and so can't feed back
+  // into a re-render. This deliberately replaces the old `router.replace` +
+  // "adopt external URL" pair, whose write→searchParams→re-render loop could
+  // stall the query and leave the page stuck on skeletons with dead controls.
+  // Deep-links (genre tags, shared URLs) still work: they mount Discover fresh,
+  // and the initial state is read from the URL above.
   const urlQuery = useMemo(() => filtersToUrl(filters, debounced), [filters, debounced]);
-  const selfWrites = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!mounted) return;
-    if (selfWrites.current.size > 30) selfWrites.current.clear();
-    selfWrites.current.add(urlQuery);
-    router.replace(`/discover?${urlQuery}`, { scroll: false });
-  }, [urlQuery, mounted, router]);
-
-  // Adopt external URL changes (nav links, back/forward, genre deep-links).
-  const externalQuery = searchParams.toString();
-  useEffect(() => {
-    if (!mounted) return;
-    if (externalQuery === urlQuery) return;
-    if (selfWrites.current.has(externalQuery)) return;
-    const next = filtersFromParams(new URLSearchParams(externalQuery));
-    if (filtersToUrl(next.filters, next.search) === urlQuery) return;
-    setFilters(next.filters);
-    setSearch(next.search);
-    setDebounced(next.search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalQuery, mounted]);
+    window.history.replaceState(null, "", `/discover?${urlQuery}`);
+  }, [urlQuery, mounted]);
 
   // One infinite query keyed purely by the active filters + search. The
   // displayed list is derived directly from the query's pages, so a filter
