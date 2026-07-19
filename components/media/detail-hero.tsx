@@ -31,7 +31,7 @@ export function DetailHero({ media }: { media: MediaDetail }) {
   return (
     <header className="relative">
       {/* banner wash */}
-      <div className="absolute inset-x-0 top-0 h-[40vh] min-h-[280px] overflow-hidden md:h-[48vh]">
+      <div className="absolute inset-x-0 top-0 h-[46vh] min-h-[340px] overflow-hidden md:h-[54vh]">
         {banner && (
           <Image
             src={banner}
@@ -48,10 +48,10 @@ export function DetailHero({ media }: { media: MediaDetail }) {
         <div className="absolute inset-0 bg-gradient-to-r from-abyss-950/70 via-transparent to-abyss-950/40" />
       </div>
 
-      <div className="container relative pt-[22vh] md:pt-[28vh]">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:gap-6">
+      <div className="container relative pt-[26vh] md:pt-[32vh]">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:gap-8">
           {/* poster */}
-          <div className="w-32 shrink-0 sm:w-44 md:w-52">
+          <div className="w-36 shrink-0 sm:w-48 md:w-56 lg:w-60">
             <div className="glass glass-sheen overflow-hidden rounded-2xl p-1.5">
               <div className="relative aspect-[2/3] overflow-hidden rounded-xl">
                 {cover ? (
@@ -87,16 +87,16 @@ export function DetailHero({ media }: { media: MediaDetail }) {
               {unitCount && <MetaPill icon={<Layers className="h-3 w-3" />}>{unitCount}</MetaPill>}
             </div>
 
-            <h1 className="font-display text-[1.75rem] font-bold leading-[1.1] text-white drop-shadow-lg [overflow-wrap:anywhere] sm:text-4xl md:text-5xl">
+            <h1 className="font-display text-4xl font-bold leading-[1.02] tracking-tight text-white drop-shadow-lg [overflow-wrap:anywhere] sm:text-6xl md:text-7xl">
               {title}
             </h1>
             {media.title.native && media.title.native !== title && (
-              <p className="mt-1.5 text-sm text-white/45 [overflow-wrap:anywhere]">{media.title.native}</p>
+              <p className="mt-2 text-sm text-white/45 [overflow-wrap:anywhere]">{media.title.native}</p>
             )}
 
             {/* color-coded genres — the shared genre-tag system, up front */}
             {media.genres.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap gap-1.5">
                 {media.genres.slice(0, 4).map((g) => (
                   <GenreTag
                     key={g}
@@ -108,15 +108,15 @@ export function DetailHero({ media }: { media: MediaDetail }) {
               </div>
             )}
 
-            {/* quiet stat strip — score, popularity, next episode */}
-            <div className="mt-3.5 flex flex-wrap items-center gap-2">
+            {/* stat strip — score, popularity, next episode */}
+            <div className="mt-5 flex flex-wrap items-center gap-2.5">
               {score != null && (
                 <span
                   className="inline-flex items-center gap-1.5"
                   title={`Community score: ${score.toFixed(1)} out of 10`}
                 >
-                  <ScoreBadge score={score} size="sm" />
-                  <span className="text-[11px] font-medium text-white/45">avg</span>
+                  <ScoreBadge score={score} size="md" />
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-white/40">avg</span>
                 </span>
               )}
               {media.favourites != null && media.favourites > 0 && (
@@ -135,7 +135,7 @@ export function DetailHero({ media }: { media: MediaDetail }) {
             </div>
 
             {/* primary action — the most reachable control in the hero */}
-            <div className="mt-5">
+            <div className="mt-6">
               <MediaActions media={media} />
             </div>
           </div>

@@ -23,13 +23,13 @@ export function MediaScroller({
 
   return (
     <section className="mt-12 min-w-0">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2.5 font-display text-lg font-semibold text-white">
-          <span aria-hidden className="h-4 w-1 shrink-0 rounded-full bg-gradient-to-b from-waku-400 to-iris-500" />
+      <div className="mb-5 flex items-center gap-4">
+        <h2 className="flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
           {icon && <span className="text-waku-cinematic">{icon}</span>}
           {title}
         </h2>
-        <div className="hidden gap-1.5 sm:flex">
+        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/15 to-transparent" />
+        <div className="hidden shrink-0 gap-1.5 sm:flex">
           <Button variant="glass" size="icon-sm" onClick={() => scroll(-1)} aria-label="Scroll left">
             <ChevronLeft className="h-4 w-4" />
           </Button>
