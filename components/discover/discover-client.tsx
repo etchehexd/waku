@@ -344,8 +344,27 @@ export function DiscoverClient() {
         </div>
       )}
 
-      {/* Silent infinite scroll — results auto-load as you near the bottom
-          (see the scroll listener above); no button, spinner, or end message. */}
+      {/* Pagination — auto-loads on scroll (listener above), but ALSO offers an
+          explicit button so loading never depends on scroll detection working
+          in a given browser/embed. Belt and suspenders. */}
+      {items.length > 0 && hasNext && (
+        <div className="mt-8 flex justify-center">
+          <Button
+            variant="glass"
+            size="md"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </>
+            ) : (
+              "Load more"
+            )}
+          </Button>
+        </div>
+      )}
       <div className="py-6" />
     </div>
   );

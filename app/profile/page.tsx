@@ -15,7 +15,8 @@ import { isNovel } from "@/lib/library-filters";
 import { STATUS_META } from "@/components/media/status-meta";
 import { RatingChip } from "@/components/media/rating-chip";
 import { Button } from "@/components/ui/button";
-import { AccountCard } from "@/components/auth/account-card";
+import { ProfileAuth } from "@/components/profile/profile-auth";
+import { useWakuAuth } from "@/lib/supabase/sync";
 import { OtakuLevel, type OtakuLevelData } from "@/components/profile/otaku-level";
 import { SettingsSheet } from "@/components/profile/settings-sheet";
 import {
@@ -57,6 +58,7 @@ export default function ProfilePage() {
   const entries = useEntriesList();
   const profile = useWaku((s) => s.profile);
   const updateProfile = useWaku((s) => s.updateProfile);
+  const { user: authUser } = useWakuAuth();
   const [editing, setEditing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -180,7 +182,7 @@ export default function ProfilePage() {
     <div className="container max-w-5xl pt-20 md:pt-24">
       {/* Header card */}
       <div className="glass glass-sheen relative overflow-hidden rounded-4xl p-6 sm:p-8">
-        <div className="absolute inset-0 -z-10 bg-radial-glow opacity-70" />
+        <div className="absolute inset-0 -z-10 bg-radial-glow opacity-40" />
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
           <div className="relative">
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-iris-400 to-waku-700 text-3xl font-bold text-white shadow-glow ring-1 ring-white/20">
@@ -270,14 +272,24 @@ export default function ProfilePage() {
                 <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{profile.displayName}</h1>
                 <p className="text-sm text-white/45">@{profile.username}</p>
                 <p className="mt-2 max-w-md text-sm text-white/65">{profile.bio}</p>
-                <p className="mt-2.5 text-xs font-medium uppercase tracking-wider text-waku-cinematic">
-                  Otaku {level.name} · Level {level.level}
-                </p>
+                <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-start">
+                  <p className="text-xs font-medium uppercase tracking-wider text-waku-cinematic">
+                    Otaku {level.name} · Level {level.level}
+                  </p>
+                  {authUser ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
+                      <CheckCircle2 className="h-3 w-3" /> Synced · {authUser.email}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-white/40">Not signed in — data saved on this device</span>
+                  )}
+                </div>
               </>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <ProfileAuth />
             <SettingsSheet />
             <Button variant="glass" size="sm" onClick={() => setEditing((v) => !v)}>
               <Pencil className="h-3.5 w-3.5" /> {editing ? "Done" : "Edit"}
@@ -289,11 +301,6 @@ export default function ProfilePage() {
       {/* Otaku level showpiece */}
       <div className="mt-5">
         <OtakuLevel data={level} />
-      </div>
-
-      {/* Account / cloud sync */}
-      <div className="mt-5">
-        <AccountCard />
       </div>
 
       {stats.total === 0 ? (

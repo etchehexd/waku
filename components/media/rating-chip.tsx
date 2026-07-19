@@ -76,7 +76,7 @@ export function RatingChip({
         // A hairline in the tier color ties the chip together; a perfect 10
         // earns the same gold outline the score ring uses elsewhere.
         boxShadow: perfect
-          ? `inset 0 0 0 1px ${GOLD}, 0 0 8px -2px ${GOLD}`
+          ? `inset 0 0 0 1px ${GOLD}`
           : `inset 0 0 0 1px ${tier.color}66`,
       }}
       title={`Your rating: ${formatScore(score)} · ${tier.label}`}
