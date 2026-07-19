@@ -32,8 +32,8 @@ export function Synopsis({ text }: { text: string }) {
         <p
           ref={ref}
           className={cn(
-            "whitespace-pre-line text-[15px] leading-relaxed text-white/70 transition-[max-height]",
-            !expanded && "max-h-[10.5rem] overflow-hidden",
+            "whitespace-pre-line text-[17px] leading-[1.75] text-white/75 transition-[max-height] [text-wrap:pretty]",
+            !expanded && "max-h-[12.25rem] overflow-hidden",
           )}
         >
           {text}

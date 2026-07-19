@@ -22,10 +22,11 @@ export function MediaScroller({
     rail.current?.scrollBy({ left: dir * 440, behavior: "smooth" });
 
   return (
-    <section className="mt-9 min-w-0">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-          {icon}
+    <section className="mt-12 min-w-0">
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2.5 font-display text-lg font-semibold text-white">
+          <span aria-hidden className="h-4 w-1 shrink-0 rounded-full bg-gradient-to-b from-waku-400 to-iris-500" />
+          {icon && <span className="text-waku-cinematic">{icon}</span>}
           {title}
         </h2>
         <div className="hidden gap-1.5 sm:flex">

@@ -75,8 +75,8 @@ export default async function MediaPage({ params }: Params) {
     <article className="overflow-x-clip pb-16">
       <DetailHero media={media} />
 
-      <div className="container mt-8 md:mt-10">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+      <div className="container mt-10 md:mt-14">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-14">
           {/* main column */}
           <div className="min-w-0">
             {description ? (
@@ -86,7 +86,7 @@ export default async function MediaPage({ params }: Params) {
             )}
 
             {/* Facts — inline here on small screens, in the aside on desktop. */}
-            <section className="mt-8 lg:hidden">
+            <section className="mt-12 lg:hidden">
               <SectionHeading icon={<Info className="h-4 w-4" />}>Details</SectionHeading>
               <div className="glass rounded-3xl p-4">
                 <FactList facts={facts} />
@@ -94,12 +94,12 @@ export default async function MediaPage({ params }: Params) {
             </section>
 
             {characters.length > 0 && (
-              <section className="mt-9 min-w-0">
+              <section className="mt-12 min-w-0">
                 <SectionHeading icon={<Users className="h-4 w-4" />}>
                   Characters
                   <Count n={characters.length} />
                 </SectionHeading>
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {characters.map((edge) => (
                     <CharacterCard
                       key={`${edge.node.id}-${edge.role}`}
