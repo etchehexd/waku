@@ -14,9 +14,9 @@ export function OrnamentBackdrop() {
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
     >
       {/* top-left flourish */}
-      <Flourish className="absolute -left-16 -top-20 h-[34rem] w-[34rem] text-waku-cinematic/[0.05]" />
+      <Flourish className="absolute -left-16 -top-20 h-[34rem] w-[34rem] text-waku-cinematic/[0.028]" />
       {/* bottom-right flourish, mirrored */}
-      <Flourish className="absolute -bottom-24 -right-16 h-[38rem] w-[38rem] rotate-180 text-iris-300/[0.045]" />
+      <Flourish className="absolute -bottom-24 -right-16 h-[38rem] w-[38rem] rotate-180 text-iris-300/[0.025]" />
     </div>
   );
 }

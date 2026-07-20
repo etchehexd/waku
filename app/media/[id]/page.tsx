@@ -70,13 +70,13 @@ export default async function MediaPage({ params }: Params) {
     <article className="overflow-x-clip pb-20">
       <DetailHero media={media} />
 
-      <div className="container mt-12 md:mt-16">
-        <div className="mx-auto max-w-3xl">
+      <div className="container mt-8 md:mt-10">
+        <div className="mx-auto max-w-2xl">
           {/* Inline facts band — replaces the boxed sidebar */}
           <FactBand facts={facts} />
 
           {/* Synopsis */}
-          <section className="mt-12">
+          <section className="mt-9">
             <SectionHeading>Synopsis</SectionHeading>
             {description ? (
               <Synopsis text={description} />
@@ -88,11 +88,11 @@ export default async function MediaPage({ params }: Params) {
           </section>
 
           {characters.length > 0 && (
-            <section className="mt-14">
+            <section className="mt-10">
               <SectionHeading icon={<Users className="h-4 w-4" />} count={characters.length}>
                 Characters
               </SectionHeading>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {characters.map((edge) => (
                   <CharacterCard
                     key={`${edge.node.id}-${edge.role}`}
@@ -138,16 +138,16 @@ function FactBand({ facts }: { facts: Fact[] }) {
   const shown = facts.filter((f) => f.value != null && f.value !== "");
   if (shown.length === 0) return null;
   return (
-    <dl className="flex flex-wrap items-stretch justify-center gap-y-4 rounded-2xl border-y border-white/[0.08] py-5">
+    <dl className="flex flex-wrap items-stretch justify-center gap-y-3 border-y border-white/[0.08] py-3.5">
       {shown.map((f, i) => (
         <div
           key={f.label}
-          className={i > 0 ? "border-l border-white/[0.08] px-5 sm:px-7" : "px-5 sm:px-7"}
+          className={i > 0 ? "border-l border-white/[0.08] px-4 sm:px-6" : "px-4 sm:px-6"}
         >
-          <dt className="text-center text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
+          <dt className="text-center text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
             {f.label}
           </dt>
-          <dd className="mt-1 text-center text-sm font-semibold capitalize text-white/90 [overflow-wrap:anywhere]">
+          <dd className="mt-0.5 text-center text-[13px] font-semibold capitalize text-white/90 [overflow-wrap:anywhere]">
             {f.value}
           </dd>
         </div>
@@ -167,9 +167,9 @@ function SectionHeading({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-col items-center gap-2 text-center">
-      <span aria-hidden className="h-1 w-8 rounded-full bg-waku-cinematic" />
-      <h2 className="flex items-center gap-2.5 font-display text-2xl font-extrabold tracking-tight text-white">
+    <div className="mb-4 flex flex-col items-center gap-1.5 text-center">
+      <span aria-hidden className="h-1 w-7 rounded-full bg-waku-cinematic" />
+      <h2 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-white">
         {icon && <span className="text-waku-cinematic">{icon}</span>}
         {children}
         {count != null && (

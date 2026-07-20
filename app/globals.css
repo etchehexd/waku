@@ -78,9 +78,9 @@
        the chosen theme. Deliberately low-opacity and unanimated: calm, not
        attention-seeking. */
     background-image:
-      radial-gradient(900px 520px at 82% -10%, hsl(var(--wk-h) var(--wk-s) 58% / 0.12), transparent 62%),
-      radial-gradient(720px 460px at 4% 2%, hsl(var(--ir-h) var(--ir-s) 60% / 0.08), transparent 58%),
-      radial-gradient(1100px 720px at 50% 122%, hsl(var(--wk-h) var(--wk-s) 28% / 0.20), transparent 62%);
+      radial-gradient(900px 520px at 82% -10%, hsl(var(--wk-h) var(--wk-s) 58% / 0.06), transparent 62%),
+      radial-gradient(720px 460px at 4% 2%, hsl(var(--ir-h) var(--ir-s) 60% / 0.04), transparent 58%),
+      radial-gradient(1100px 720px at 50% 122%, hsl(var(--wk-h) var(--wk-s) 28% / 0.10), transparent 62%);
     background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
   }

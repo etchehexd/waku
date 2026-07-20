@@ -15,6 +15,8 @@ import {
   Film,
   Percent,
   ChevronRight,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import {
   useEntriesList,
@@ -30,12 +32,14 @@ import {
   activeFilterCount,
   matchesType,
   compareEntries,
+  entryTotal,
   type LibraryFilters,
   type TypeFilter,
 } from "@/lib/library-filters";
 import { useMounted } from "@/lib/use-mounted";
 import { cn, formatScore } from "@/lib/utils";
 import { STATUS_META } from "@/components/media/status-meta";
+import { ScoreBadge } from "@/components/media/score-badge";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/library/entry-card";
 import { SortMenu } from "@/components/library/sort-menu";
@@ -61,6 +65,8 @@ export default function LibraryPage() {
 
   const sort = useLibraryPrefs((s) => s.sort);
   const setSort = useLibraryPrefs((s) => s.setSort);
+  const layout = useLibraryPrefs((s) => s.layout);
+  const setLayout = useLibraryPrefs((s) => s.setLayout);
 
   const [statusTab, setStatusTab] = useState<WatchStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
@@ -146,7 +152,12 @@ export default function LibraryPage() {
               Library
             </h1>
           </div>
-          {entries.length > 0 && <RefreshButton entries={entries} />}
+          {entries.length > 0 && (
+            <div className="flex items-center gap-2">
+              <RefreshButton entries={entries} />
+              <LayoutToggle layout={layout} setLayout={setLayout} />
+            </div>
+          )}
         </div>
 
         {entries.length > 0 && (
@@ -211,56 +222,63 @@ export default function LibraryPage() {
             <FilterPopover filters={filters} setFilters={setFilters} />
           </div>
 
-          {/* Filtering → flat grid of matches. Otherwise → status shelves. */}
-          {isFiltering ? (
-            <>
-              <div className="mb-4 flex flex-wrap items-center gap-1.5">
-                {statusTab !== "ALL" && (
-                  <Chip label={STATUS_LABEL[statusTab]} onRemove={() => setStatusTab("ALL")} />
-                )}
-                {trimmedSearch !== "" && <Chip label={`"${trimmedSearch}"`} onRemove={() => setSearch("")} />}
-                {filters.rated !== "all" && (
-                  <Chip label={filters.rated === "rated" ? "Rated" : "Unrated"} onRemove={() => setFilters((f) => ({ ...f, rated: "all" }))} />
-                )}
-                {filters.inProgressOnly && <Chip label="In progress" onRemove={() => setFilters((f) => ({ ...f, inProgressOnly: false }))} />}
-                {filters.favoritesOnly && <Chip label="Favorites" onRemove={() => setFilters((f) => ({ ...f, favoritesOnly: false }))} />}
-                {filters.rewatchedOnly && <Chip label="Rewatched" onRemove={() => setFilters((f) => ({ ...f, rewatchedOnly: false }))} />}
-                {filters.hideCompleted && <Chip label="Hide completed" onRemove={() => setFilters((f) => ({ ...f, hideCompleted: false }))} />}
-                {filters.hideDropped && <Chip label="Hide dropped" onRemove={() => setFilters((f) => ({ ...f, hideDropped: false }))} />}
-                <button
-                  onClick={clearAll}
-                  className="rounded-full px-3 py-1 text-xs font-medium text-waku-cinematic outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
-                >
-                  Clear all
-                </button>
-              </div>
-
-              {results.length === 0 ? (
-                <NoResults onClear={clearAll} />
-              ) : (
-                <>
-                  <div className={GRID_CLS}>
-                    {results.map((e) => (
-                      <EntryCard key={e.media.id} entry={e} />
-                    ))}
-                  </div>
-                  <p className="mt-6 text-center text-xs text-white/35" aria-live="polite">
-                    {results.length} {results.length === 1 ? "match" : "matches"}
-                  </p>
-                </>
+          {/* Active filter chips (shown whenever filtering). */}
+          {isFiltering && (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+              {statusTab !== "ALL" && (
+                <Chip label={STATUS_LABEL[statusTab]} onRemove={() => setStatusTab("ALL")} />
               )}
-            </>
+              {trimmedSearch !== "" && <Chip label={`"${trimmedSearch}"`} onRemove={() => setSearch("")} />}
+              {filters.rated !== "all" && (
+                <Chip label={filters.rated === "rated" ? "Rated" : "Unrated"} onRemove={() => setFilters((f) => ({ ...f, rated: "all" }))} />
+              )}
+              {filters.inProgressOnly && <Chip label="In progress" onRemove={() => setFilters((f) => ({ ...f, inProgressOnly: false }))} />}
+              {filters.favoritesOnly && <Chip label="Favorites" onRemove={() => setFilters((f) => ({ ...f, favoritesOnly: false }))} />}
+              {filters.rewatchedOnly && <Chip label="Rewatched" onRemove={() => setFilters((f) => ({ ...f, rewatchedOnly: false }))} />}
+              {filters.hideCompleted && <Chip label="Hide completed" onRemove={() => setFilters((f) => ({ ...f, hideCompleted: false }))} />}
+              {filters.hideDropped && <Chip label="Hide dropped" onRemove={() => setFilters((f) => ({ ...f, hideDropped: false }))} />}
+              <button
+                onClick={clearAll}
+                className="rounded-full px-3 py-1 text-xs font-medium text-waku-cinematic outline-none hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
+          {/* Compact = dense poster-less list. Shelves = rails, or a grid while filtering. */}
+          {layout === "compact" ? (
+            results.length === 0 ? (
+              inType.length === 0 ? <TypeEmptyState type={mediaType} /> : <NoResults onClear={clearAll} />
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {results.map((e) => (
+                    <CompactRow key={e.media.id} entry={e} />
+                  ))}
+                </div>
+                <ResultCount n={results.length} />
+              </>
+            )
+          ) : isFiltering ? (
+            results.length === 0 ? (
+              <NoResults onClear={clearAll} />
+            ) : (
+              <>
+                <div className={GRID_CLS}>
+                  {results.map((e) => (
+                    <EntryCard key={e.media.id} entry={e} />
+                  ))}
+                </div>
+                <ResultCount n={results.length} />
+              </>
+            )
           ) : inType.length === 0 ? (
             <TypeEmptyState type={mediaType} />
           ) : (
             <div className="space-y-9">
               {STATUS_ORDER.filter((s) => shelves[s].length > 0).map((s) => (
-                <Shelf
-                  key={s}
-                  status={s}
-                  entries={shelves[s]}
-                  onViewAll={() => setStatusTab(s)}
-                />
+                <Shelf key={s} status={s} entries={shelves[s]} onViewAll={() => setStatusTab(s)} />
               ))}
             </div>
           )}
@@ -338,6 +356,79 @@ function Shelf({
         )}
       </div>
     </section>
+  );
+}
+
+/** Shelves ↔ compact list switch. */
+function LayoutToggle({
+  layout,
+  setLayout,
+}: {
+  layout: "shelves" | "compact";
+  setLayout: (l: "shelves" | "compact") => void;
+}) {
+  const opts = [
+    { value: "shelves" as const, icon: LayoutGrid, label: "Shelves" },
+    { value: "compact" as const, icon: List, label: "Compact list" },
+  ];
+  return (
+    <div className="flex items-center gap-1 rounded-full bg-white/5 p-1 ring-1 ring-inset ring-white/10">
+      {opts.map((o) => {
+        const Icon = o.icon;
+        const active = layout === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => setLayout(o.value)}
+            aria-label={o.label}
+            aria-pressed={active}
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-waku-400",
+              active ? "bg-white/15 text-white" : "text-white/50 hover:text-white",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Dense, poster-less box: name + status + progress + score. */
+function CompactRow({ entry }: { entry: LibraryEntry }) {
+  const { media } = entry;
+  const meta = STATUS_META[entry.status];
+  const total = entryTotal(entry);
+  return (
+    <Link
+      href={`/media/${media.id}`}
+      className="group flex items-center gap-3 rounded-xl bg-white/[0.025] p-2.5 outline-none ring-1 ring-inset ring-white/[0.07] transition-colors hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-waku-400"
+    >
+      <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-bold leading-tight text-white group-hover:text-waku-cinematic">
+          {media.title}
+        </span>
+        <span className="mt-0.5 block text-[10px] font-medium text-white/45">
+          <span style={{ color: meta.color }}>{STATUS_LABEL[entry.status]}</span>
+          {" · "}
+          <span className="tabular-nums">
+            {entry.progress}
+            {total ? `/${total}` : ""}
+          </span>
+        </span>
+      </span>
+      {entry.score != null && <ScoreBadge score={entry.score} size="sm" plate={false} />}
+    </Link>
+  );
+}
+
+function ResultCount({ n }: { n: number }) {
+  return (
+    <p className="mt-6 text-center text-xs text-white/35" aria-live="polite">
+      {n} {n === 1 ? "title" : "titles"}
+    </p>
   );
 }
 

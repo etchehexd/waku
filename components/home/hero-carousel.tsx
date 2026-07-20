@@ -170,11 +170,10 @@ export function HeroCarousel({ items, interval = 7000 }: HeroCarouselProps) {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {score != null && (
                   <span
-                    className="inline-flex shrink-0 items-center gap-1.5"
+                    className="inline-flex shrink-0 items-center"
                     title={`Community score ${score.toFixed(1)} / 10`}
                   >
                     <ScoreBadge score={score} size="sm" />
-                    <span className="text-[11px] font-medium text-white/45">avg</span>
                   </span>
                 )}
                 {active.favourites != null && active.favourites > 0 && (
