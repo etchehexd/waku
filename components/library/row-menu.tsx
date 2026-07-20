@@ -37,6 +37,7 @@ export function RowMenu({ entry }: { entry: LibraryEntry }) {
   const total = entryTotal(entry);
   const atTotal = total != null && entry.progress >= total;
   const canComplete = entry.status !== "COMPLETED" && entry.status !== "DROPPED";
+  const canRate = entry.status === "COMPLETED" || entry.status === "REWATCHING";
   const close = () => setOpen(false);
 
   return (
@@ -80,17 +81,19 @@ export function RowMenu({ entry }: { entry: LibraryEntry }) {
           </button>
         )}
 
-        <button
-          role="menuitem"
-          onClick={() => {
-            requestRate(id);
-            close();
-          }}
-          className={menuItemCls()}
-        >
-          <Star className="h-4 w-4 shrink-0 text-white/50" />
-          {entry.score != null ? "Edit rating" : "Rate title"}
-        </button>
+        {canRate && (
+          <button
+            role="menuitem"
+            onClick={() => {
+              requestRate(id);
+              close();
+            }}
+            className={menuItemCls()}
+          >
+            <Star className="h-4 w-4 shrink-0 text-white/50" />
+            {entry.score != null ? "Edit rating" : "Rate title"}
+          </button>
+        )}
 
         <button
           role="menuitem"

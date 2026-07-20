@@ -3,7 +3,6 @@ import { Heart, Film, Clock, Trophy, Flame } from "lucide-react";
 import type { MediaDetail, MediaRanking } from "@/lib/anilist/types";
 import { toTenScale, formatCount } from "@/lib/utils";
 import { ScoreBadge } from "./score-badge";
-import { MediaActions } from "./media-actions";
 import { AiringCountdown } from "./airing-countdown";
 import { GenreTag } from "./genre-tag";
 
@@ -146,10 +145,6 @@ export function DetailHero({ media }: { media: MediaDetail }) {
                 {airing && <AiringCountdown airingAt={airing.airingAt} episode={airing.episode} />}
               </div>
             )}
-
-            <div className="mt-6">
-              <MediaActions media={media} />
-            </div>
           </div>
         </div>
       </div>

@@ -1,20 +1,21 @@
 "use client";
 
+import { Star } from "lucide-react";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 import { cn } from "@/lib/utils";
 
 type ChipSize = "xs" | "sm" | "md";
 
-const SIZE: Record<ChipSize, { box: string; grade: string; label: string }> = {
-  xs: { box: "h-5 px-1.5 gap-1", grade: "text-[11px]", label: "text-[10px]" },
-  sm: { box: "h-6 px-2 gap-1", grade: "text-[13px]", label: "text-[11px]" },
-  md: { box: "h-7 px-2.5 gap-1.5", grade: "text-sm", label: "text-xs" },
+const SIZE: Record<ChipSize, { box: string; icon: string; text: string; gap: string }> = {
+  xs: { box: "h-5 px-1.5", icon: "h-2.5 w-2.5", text: "text-[11px]", gap: "gap-1" },
+  sm: { box: "h-6 px-2", icon: "h-3 w-3", text: "text-[12px]", gap: "gap-1" },
+  md: { box: "h-7 px-2.5", icon: "h-3.5 w-3.5", text: "text-sm", gap: "gap-1.5" },
 };
 
 /**
- * Tier-tinted verdict-grade pill — the standard way a user's rating shows on
- * library items. Reads as one object: the letter grade plus (at md) its word.
- * Unrated entries get a quiet outlined mark rather than a loud placeholder.
+ * Tier-tinted rating pill — a filled star + the whole-number score (1–10). The
+ * standard way a user's rating shows on library items; unrated entries get a
+ * quiet outlined mark rather than a loud placeholder.
  */
 export function RatingChip({
   score,
@@ -33,36 +34,39 @@ export function RatingChip({
 
   if (!rated && !showUnrated) return null;
 
-  const tier = tierForScore(score);
-  const perfect = isPerfect(score);
-
   if (!rated) {
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center rounded-full font-black text-white/40 ring-1 ring-inset ring-white/12",
+          "inline-flex shrink-0 items-center rounded-full font-black tabular-nums text-white/40 ring-1 ring-inset ring-white/12",
           dim.box,
+          dim.gap,
+          dim.text,
           className,
         )}
         title="Not rated yet"
       >
-        <span className={dim.grade}>–</span>
+        <Star className={dim.icon} aria-hidden />
+        <span aria-hidden>&ndash;</span>
       </span>
     );
   }
 
+  const tier = tierForScore(score);
+  const perfect = isPerfect(score);
+
   return (
     <span
-      className={cn("inline-flex shrink-0 items-center rounded-full", dim.box, className)}
+      className={cn("inline-flex shrink-0 items-center rounded-full font-black tabular-nums", dim.box, dim.gap, dim.text, className)}
       style={{
         background: tier.soft,
         color: tier.text,
         boxShadow: perfect ? `inset 0 0 0 1px ${GOLD}` : `inset 0 0 0 1px ${tier.color}66`,
       }}
-      title={`Your rating: ${tier.grade} · ${tier.label}`}
+      title={`Your rating: ${Math.round(score!)} / 10 · ${tier.label}`}
     >
-      <span className={cn("font-black leading-none", dim.grade)}>{tier.grade}</span>
-      {size === "md" && <span className={cn("font-bold", dim.label)}>{tier.label}</span>}
+      <Star className={cn(dim.icon, "fill-current")} aria-hidden />
+      {Math.round(score!)}
     </span>
   );
 }

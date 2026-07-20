@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useWaku, useEntriesList, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
-import { TIERS, tierForScore } from "@/lib/rating";
+import { tierForScore } from "@/lib/rating";
 import { formatScore, timeAgo, cn } from "@/lib/utils";
 import { isNovel } from "@/lib/library-filters";
 import { STATUS_META } from "@/components/media/status-meta";
@@ -122,16 +122,16 @@ export default function ProfilePage() {
   const standing = useMemo(() => otakuStanding(stats.total), [stats.total]);
 
   const distribution = useMemo<DistributionBucket[]>(() => {
-    const buckets = TIERS.map((t) => ({
-      tier: t,
-      range: t.grade,
+    // A 1–10 histogram — one bar per whole-number score, tier-colored.
+    const buckets = Array.from({ length: 10 }, (_, i) => ({
+      tier: tierForScore(i + 1),
+      range: String(i + 1),
       count: 0,
     }));
     for (const e of entries) {
       if (e.score == null) continue;
-      const t = tierForScore(e.score);
-      const bucket = buckets.find((c) => c.tier.key === t.key);
-      if (bucket) bucket.count++;
+      const n = Math.min(10, Math.max(1, Math.round(e.score)));
+      buckets[n - 1].count++;
     }
     return buckets;
   }, [entries]);

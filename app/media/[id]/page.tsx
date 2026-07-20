@@ -4,6 +4,7 @@ import { Users, Sparkles, Network } from "lucide-react";
 import { getMediaDetail } from "@/lib/anilist/client";
 import { stripHtml } from "@/lib/utils";
 import { DetailHero } from "@/components/media/detail-hero";
+import { MediaActions } from "@/components/media/media-actions";
 import { Synopsis } from "@/components/media/synopsis";
 import { CharacterCard } from "@/components/media/character-card";
 import { MediaCard } from "@/components/media/media-card";
@@ -71,8 +72,16 @@ export default async function MediaPage({ params }: Params) {
     <article className="overflow-x-clip pb-20">
       <DetailHero media={media} />
 
-      <div className="container mt-10 md:mt-12">
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_236px] lg:gap-10">
+      <div className="container mt-8 md:mt-10">
+        <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-10">
+          {/* sticky tracking + facts rail — stays put while content scrolls */}
+          <aside className="mb-8 lg:mb-0 lg:sticky lg:top-24 lg:self-start">
+            <MediaActions media={media} />
+            <div className="mt-5">
+              <SpecList facts={facts} />
+            </div>
+          </aside>
+
           {/* main column */}
           <div className="min-w-0">
             <SectionHeading>Synopsis</SectionHeading>
@@ -123,11 +132,6 @@ export default async function MediaPage({ params }: Params) {
               </MediaScroller>
             )}
           </div>
-
-          {/* facts rail */}
-          <aside className="mt-10 lg:mt-0 lg:sticky lg:top-24 lg:self-start">
-            <SpecList facts={facts} />
-          </aside>
         </div>
       </div>
     </article>

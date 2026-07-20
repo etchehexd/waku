@@ -95,7 +95,7 @@ export default function RankingsPage() {
       <PageHeader
         icon={<Trophy className="h-5 w-5" />}
         title="Rankings"
-        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${tierForScore(avg).grade}` : undefined}
+        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${Math.round(avg)}` : undefined}
       />
 
       {ranked.length === 0 ? (
@@ -114,8 +114,8 @@ export default function RankingsPage() {
             <Insight
               icon={<Sigma className="h-3.5 w-3.5" />}
               label="Median"
-              value={tierForScore(insights.med).grade}
-              hint="middle grade"
+              value={String(Math.round(insights.med))}
+              hint="middle score"
               accent="#6ea8ff"
             />
             <Insight
@@ -321,10 +321,10 @@ function RankRow({
       </div>
 
       <span
-        className={cn("shrink-0 text-right font-black", elite ? "w-11 text-2xl" : "w-9 text-lg")}
+        className={cn("shrink-0 text-right font-black tabular-nums", elite ? "w-11 text-2xl" : "w-9 text-lg")}
         style={{ color: accent }}
       >
-        {tier.grade}
+        {Math.round(entry.score ?? 0)}
       </span>
 
       <button

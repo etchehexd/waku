@@ -7,18 +7,19 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
 import { useWaku } from "@/lib/store";
 import { useAuthGate } from "@/lib/use-auth-gate";
-import { tierForScore, GRADE_TIERS, type Tier } from "@/lib/rating";
+import { tierForScore } from "@/lib/rating";
 import { SMART_MIN_REFERENCES } from "@/lib/smart-rating";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 /**
- * The dedicated rating menu — a verdict-grade picker.
+ * The rating menu — a 1–10 whole-number scale (no decimals).
  *
- * Mounted once globally; opens whenever the store has a `pendingRate` (set on
- * completion, or via `requestRate`). You pick a letter grade (S…F); the store
- * keeps a 0–10 anchor behind it so Smart Rating comparisons can still resolve
- * exact rankings. Smart Rate leads once enough references exist.
+ * Opens only for finished titles (the store guards `pendingRate`). You pick a
+ * whole number; Smart Rating comparisons still resolve exact ranking order, so
+ * the number stays a gut verdict rather than false precision.
  */
 export function RatingPrompt() {
   const pendingRate = useWaku((s) => s.pendingRate);
@@ -28,39 +29,32 @@ export function RatingPrompt() {
   const { gated } = useAuthGate();
 
   const entry = pendingRate != null ? entries[pendingRate] : undefined;
-  const previous = entry?.score ?? null;
-  const prevTier = previous != null ? tierForScore(previous) : null;
+  const previous = entry?.score != null ? Math.round(entry.score) : null;
 
   const referenceCount = Object.values(entries).filter(
     (e) => e.score != null && e.media.id !== pendingRate,
   ).length;
 
-  // Draft holds the chosen grade's tier; default to "Great" (B).
-  const defaultTier = GRADE_TIERS.find((t) => t.key === "great") ?? GRADE_TIERS[2];
-  const [tier, setTier] = useState<Tier>(prevTier ?? defaultTier);
+  const [draft, setDraft] = useState(previous ?? 7);
   const saveRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    if (pendingRate != null) {
-      const t = entry?.score != null ? tierForScore(entry.score) : defaultTier;
-      setTier(t);
-    }
+    if (pendingRate != null) setDraft(entry?.score != null ? Math.round(entry.score) : 7);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRate]);
 
   useEffect(() => {
     if (pendingRate == null) return;
-    const idx = () => GRADE_TIERS.findIndex((t) => t.key === tier.key);
     const onKey = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.key === "Escape") return clearPendingRate();
-      if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+      if (e.key === "ArrowUp" || e.key === "ArrowRight") {
         e.preventDefault();
-        setTier(GRADE_TIERS[Math.max(0, idx() - 1)]);
-      } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        setDraft((d) => Math.min(10, d + 1));
+      } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
         e.preventDefault();
-        setTier(GRADE_TIERS[Math.min(GRADE_TIERS.length - 1, idx() + 1)]);
+        setDraft((d) => Math.max(1, d - 1));
       } else if (e.key === "Enter") {
         e.preventDefault();
         saveRef.current();
@@ -68,13 +62,16 @@ export function RatingPrompt() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pendingRate, tier, clearPendingRate]);
+  }, [pendingRate, clearPendingRate]);
 
-  const open = pendingRate != null && !!entry && !gated;
+  // Guard: only finished titles can be rated.
+  const canRate = !!entry && (entry.status === "COMPLETED" || entry.status === "REWATCHING");
+  const open = pendingRate != null && canRate && !gated;
   const smartUnlocked = referenceCount >= SMART_MIN_REFERENCES;
+  const tier = tierForScore(draft);
 
   const save = () => {
-    if (pendingRate != null) rateById(pendingRate, tier.anchor);
+    if (pendingRate != null) rateById(pendingRate, draft);
     clearPendingRate();
   };
   saveRef.current = save;
@@ -109,7 +106,7 @@ export function RatingPrompt() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-waku-cinematic">
-                  {previous != null ? "Update your verdict" : "You finished it"}
+                  {previous != null ? "Update your rating" : "You finished it"}
                 </p>
                 <h3 className="truncate font-display text-lg font-extrabold leading-tight text-white">
                   {entry.media.title}
@@ -125,53 +122,46 @@ export function RatingPrompt() {
             </div>
 
             <div className="px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
-              {/* big verdict */}
+              {/* big number verdict */}
               <div className="flex flex-col items-center" aria-live="polite">
-                <span
-                  className="flex h-24 w-24 items-center justify-center rounded-3xl font-black leading-none"
-                  style={{ background: tier.soft, color: tier.text, boxShadow: `inset 0 0 0 2px ${tier.color}` }}
-                >
-                  <span className="text-6xl">{tier.grade}</span>
+                <span className="flex items-baseline gap-1 font-black leading-none" style={{ color: tier.text }}>
+                  <span className="text-7xl tabular-nums">{draft}</span>
+                  <span className="text-2xl text-white/35">/10</span>
                 </span>
-                <p className="mt-3 font-display text-2xl font-extrabold uppercase tracking-wide" style={{ color: tier.text }}>
+                <p className="mt-2 font-display text-lg font-extrabold uppercase tracking-wide" style={{ color: tier.color }}>
                   {tier.label}
                 </p>
-                {prevTier && prevTier.key !== tier.key && (
+                {previous != null && previous !== draft && (
                   <p className="mt-1 text-xs text-white/45">
-                    Previously <span className="font-bold text-white/75">{prevTier.grade}</span>
+                    Previously <span className="font-bold text-white/75">{previous}</span>
                   </p>
                 )}
               </div>
 
-              {/* grade ladder */}
-              <div className="mt-6 grid grid-cols-7 gap-1.5" role="radiogroup" aria-label="Grade">
-                {GRADE_TIERS.map((t) => {
-                  const active = t.key === tier.key;
+              {/* 1–10 selector */}
+              <div className="mt-6 grid grid-cols-10 gap-1" role="radiogroup" aria-label="Score out of 10">
+                {SCORES.map((n) => {
+                  const t = tierForScore(n);
+                  const active = draft === n;
                   return (
                     <button
-                      key={t.key}
+                      key={n}
                       role="radio"
                       aria-checked={active}
-                      aria-label={`${t.grade} — ${t.label}`}
-                      onClick={() => setTier(t)}
-                      className={cn(
-                        "flex aspect-square items-center justify-center rounded-xl text-lg font-black outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-waku-400",
-                      )}
+                      aria-label={`${n} out of 10`}
+                      onClick={() => setDraft(n)}
+                      className="flex aspect-square items-center justify-center rounded-lg text-[13px] font-black tabular-nums outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-waku-400"
                       style={{
                         background: t.soft,
                         color: t.text,
-                        boxShadow: active ? `inset 0 0 0 2px ${t.color}` : `inset 0 0 0 1px ${t.color}44`,
-                        transform: active ? "scale(1.08)" : undefined,
+                        boxShadow: active ? `inset 0 0 0 2px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
+                        transform: active ? "scale(1.12)" : undefined,
                       }}
                     >
-                      {t.grade}
+                      {n}
                     </button>
                   );
                 })}
-              </div>
-              <div className="mt-1.5 flex justify-between px-0.5 text-[9px] font-bold uppercase tracking-wider text-white/30">
-                <span>Peak</span>
-                <span>Terrible</span>
               </div>
 
               {/* actions */}
@@ -188,14 +178,14 @@ export function RatingPrompt() {
                         Not now
                       </Button>
                       <Button variant="glass" size="md" className="flex-1" onClick={save}>
-                        Save {tier.grade}
+                        Save {draft}
                       </Button>
                     </div>
                   </>
                 ) : (
                   <>
                     <Button variant="accent" size="lg" className="w-full glow-accent" onClick={save}>
-                      Save verdict · {tier.grade}
+                      Save {draft} / 10
                     </Button>
                     <Button variant="ghost" size="md" className="w-full" onClick={clearPendingRate}>
                       Not now

@@ -302,7 +302,14 @@ export const useWaku = create<WakuState>()(
       rankHistory: {},
       pendingRate: null,
 
-      requestRate: (mediaId) => set({ pendingRate: mediaId }),
+      // A title can only be rated once it's been finished — you can't judge
+      // what you haven't completed. Completing (or wrapping a rewatch) is the
+      // only thing that opens the rating menu.
+      requestRate: (mediaId) => {
+        const e = get().entries[mediaId];
+        if (!e || (e.status !== "COMPLETED" && e.status !== "REWATCHING")) return;
+        set({ pendingRate: mediaId });
+      },
       clearPendingRate: () => set({ pendingRate: null }),
 
       upsertEntry: (media, patch) => {
