@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  X,
   Heart,
   RotateCcw,
   Undo2,
@@ -10,19 +12,15 @@ import {
   Sparkles,
   Check,
   Library as LibraryIcon,
-  ChevronRight,
 } from "lucide-react";
 import type { MediaSummary } from "@/lib/anilist/types";
-import { useWaku, STATUS_LABEL, type WatchStatus } from "@/lib/store";
+import { useWaku, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
-import { StatusPicker } from "./status-picker";
-import { ScorePicker } from "./score-picker";
+import { QUICK_SCORES } from "./score-picker";
 import { ProgressStepper } from "./progress-stepper";
-import { RatingChip } from "./rating-chip";
-import { Sheet, SheetSection } from "@/components/ui/sheet";
+import { tierForScore } from "@/lib/rating";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatScore } from "@/lib/utils";
 
 interface ActionSheetProps {
   media: MediaSummary;
@@ -33,17 +31,12 @@ interface ActionSheetProps {
 const DEFAULT_ADD_STATUS: WatchStatus = "CURRENT";
 
 /**
- * The Add-to-Library sheet.
+ * Add-to-library "track card" — a centered command modal (not a list sheet).
  *
- * Two deliberate modes:
- *  - **Add** (title not yet tracked): the choices are a *draft* — pick a
- *    status, optionally set progress and a score — and nothing is written
- *    until the single, obvious "Add to Library" action. Committing replays the
- *    exact same store calls the app has always used, in an order that
- *    preserves the completion → rating-prompt convention.
- *  - **Edit** (already tracked): controls apply immediately, matching the rest
- *    of the app (quick-add popovers, library rows), so nothing silently
- *    diverges. "Done" simply closes.
+ * Add mode: the choices are a draft; nothing is written until "Add to library".
+ * Edit mode: every control applies immediately, matching the rest of the app.
+ * The store call sequence is preserved so the completion → rating-prompt and
+ * rewatch conventions still hold.
  */
 export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   const entry = useWaku((s) => s.entries[media.id]);
@@ -65,13 +58,11 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   const total = media.episodes || media.chapters || null;
   const unitWord = media.type === "ANIME" ? "episodes" : "chapters";
 
-  // --- draft state, only used in Add mode ---
   const [draftStatus, setDraftStatus] = useState<WatchStatus>(DEFAULT_ADD_STATUS);
   const [draftProgress, setDraftProgress] = useState(0);
   const [draftScore, setDraftScore] = useState<number | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  // Reset the draft each time the sheet opens for an untracked title.
   useEffect(() => {
     if (open && !inList) {
       setDraftStatus(DEFAULT_ADD_STATUS);
@@ -80,26 +71,22 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
     }
   }, [open, inList]);
 
-  // Completing a title opens the global rating modal — step out of its way.
+  // Completing a title hands off to the global rating modal — step aside.
   useEffect(() => {
     if (open && pendingRate != null) onClose();
   }, [open, pendingRate, onClose]);
 
   const clamp = (n: number) => Math.max(0, total ? Math.min(n, total) : n);
-
   const progress = inList ? entry.progress : draftProgress;
-  const setProgressValue = (n: number) => {
-    const next = clamp(n);
-    if (inList) setProgress(media.id, next);
-    else setDraftProgress(next);
-  };
+  const activeStatus = inList ? entry.status : draftStatus;
+  const activeScore = inList ? entry.score : draftScore;
+  const meta = STATUS_META[activeStatus];
+  const pct = total ? Math.min(100, (progress / total) * 100) : progress > 0 ? 100 : 0;
 
-  /**
-   * Commit the Add draft. Order matters and mirrors the app's conventions:
-   * create the entry (with progress), apply any score, then set the status
-   * last so `setStatus` only raises the rating prompt when the user hasn't
-   * already scored it — exactly as tapping a status tile always behaved.
-   */
+  const chooseStatus = (s: WatchStatus) => (inList ? setStatus(media, s) : setDraftStatus(s));
+  const setProgressValue = (n: number) => (inList ? setProgress(media.id, clamp(n)) : setDraftProgress(clamp(n)));
+  const chooseScore = (v: number) => (inList ? rateById(media.id, v) : setDraftScore(v));
+
   const commitAdd = () => {
     upsertEntry(media, { progress: draftProgress });
     if (draftScore != null) rate(media, draftScore);
@@ -107,183 +94,223 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
     onClose();
   };
 
-  const activeStatus = inList ? entry.status : draftStatus;
-  const meta = STATUS_META[activeStatus];
-  const pct = total ? Math.min(100, (progress / total) * 100) : progress > 0 ? 100 : 0;
-
-  const header = useMemo(
-    () => (
-      <div className="flex items-center gap-3.5 border-b border-white/8 p-5 pr-14">
-        <div className="relative h-[4.5rem] w-12 shrink-0 overflow-hidden rounded-xl bg-abyss-700 ring-1 ring-white/10">
-          {cover && <Image src={cover} alt="" fill sizes="48px" className="object-cover" />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="line-clamp-2 font-display text-base font-semibold leading-snug text-white">
-            {title}
-          </h2>
-          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/45">
-            <span>{media.format?.replace(/_/g, " ") || (media.type === "ANIME" ? "Anime" : "Manga")}</span>
-            {media.seasonYear && <span>· {media.seasonYear}</span>}
-            {total && <span>· {total} {unitWord}</span>}
-          </p>
-          {inList && (
-            <span
-              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-              style={{ background: meta.soft, color: meta.color }}
-            >
-              <meta.icon className="h-3 w-3" />
-              In library · {STATUS_LABEL[activeStatus]}
-            </span>
-          )}
-        </div>
-      </div>
-    ),
-    [cover, title, media.format, media.seasonYear, media.type, total, unitWord, inList, meta, activeStatus],
-  );
-
-  const footer = inList ? (
-    <Button variant="primary" size="lg" className="w-full" onClick={onClose}>
-      <Check className="h-4 w-4" /> Done
-    </Button>
-  ) : (
-    <div className="flex flex-col gap-2">
-      <Button variant="accent" size="md" className="w-full glow-accent" onClick={commitAdd}>
-        <LibraryIcon className="h-4 w-4" /> Add to Library
-      </Button>
-      <p className="text-center text-[11px] text-white/35">
-        Saving as <span className="text-white/60">{STATUS_LABEL[draftStatus]}</span>
-        {draftProgress > 0 && <> · {draftProgress} {unitWord}</>}
-        {draftScore != null && <> · rated {draftScore.toFixed(1)}</>}
-      </p>
-    </div>
-  );
-
   return (
     <>
-      <Sheet
-        open={open}
-        onClose={onClose}
-        label={inList ? `Library options for ${title}` : `Add ${title} to your library`}
-        header={header}
-        footer={footer}
-      >
-        {/* STATUS — the one required choice, so it leads. */}
-        <SheetSection title={inList ? "Status" : "How are you tracking it?"}>
-          <StatusPicker
-            value={activeStatus}
-            type={media.type}
-            onSelect={(s) => (inList ? setStatus(media, s) : setDraftStatus(s))}
-          />
-        </SheetSection>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="fixed inset-0 z-[105] flex items-end justify-center sm:items-center sm:p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={inList ? `Library options for ${title}` : `Add ${title} to your library`}
+          >
+            <div className="absolute inset-0 bg-abyss-950/85 backdrop-blur-md" onClick={onClose} />
 
-        <Divider />
-
-        {/* PROGRESS — optional, and only meaningful once a status is chosen. */}
-        <SheetSection
-          title="Progress"
-          hint={total ? `${progress} / ${total} ${unitWord}` : `${progress} ${unitWord}`}
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-waku-400 to-waku-600 transition-[width] duration-500"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <ProgressStepper
-              value={progress}
-              total={total ?? null}
-              onChange={setProgressValue}
-              size="sm"
-              label={title}
-            />
-          </div>
-          {!total && (
-            <p className="mt-2 text-[11px] text-white/35">
-              No {unitWord} count published yet — track as far as you like.
-            </p>
-          )}
-        </SheetSection>
-
-        <Divider />
-
-        {/* RATING — optional. Quick chips here; the dial for precision. */}
-        <SheetSection title="Your rating">
-          <ScorePicker
-            value={inList ? entry.score : draftScore}
-            onChange={(v) => (inList ? rateById(media.id, v) : setDraftScore(v))}
-            onClear={!inList && draftScore != null ? () => setDraftScore(null) : undefined}
-          />
-          {inList && (
-            <button
-              type="button"
-              onClick={() => requestRate(media.id)}
-              className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-white/[0.04] p-2.5 text-left outline-none ring-1 ring-inset ring-white/8 transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-waku-400"
+            <motion.div
+              initial={{ opacity: 0, y: 60, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 330, damping: 32 }}
+              className="relative z-10 flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-4xl border border-white/10 bg-abyss-900 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.85)] sm:rounded-4xl sm:shadow-[0_30px_80px_-24px_rgba(0,0,0,0.85)]"
             >
-              <RatingChip score={entry.score} size="md" />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-white">
-                  {entry.score != null ? "Fine-tune your score" : "Rate with the dial"}
-                </span>
-                <span className="block text-xs text-white/45">
-                  {entry.smart ? "Smart Rated" : "Open the rating dial"}
-                </span>
-              </span>
-              <Sparkles className="h-4 w-4 shrink-0 text-waku-cinematic/70" />
-              <ChevronRight className="h-4 w-4 shrink-0 text-white/30" />
-            </button>
-          )}
-        </SheetSection>
-
-        {/* EXTRAS — progressive disclosure: only relevant once it's tracked. */}
-        {inList && (
-          <>
-            <Divider />
-            <SheetSection title="More">
-              <div className="flex flex-col gap-1.5">
-                <ToggleRow
-                  label={entry.favorite ? "Favorited" : "Add to favorites"}
-                  hint="Feature it on your profile"
-                  active={entry.favorite}
-                  activeColor="#ff5b8f"
-                  onClick={() => toggleFavorite(media.id)}
-                  icon={<Heart className={cn("h-4 w-4", entry.favorite && "fill-current")} />}
-                />
-
-                {entry.status === "COMPLETED" && (
-                  <ToggleRow
-                    label="Start a rewatch"
-                    hint={entry.rewatches > 0 ? `Watched ${entry.rewatches}× before` : "Track another run"}
-                    onClick={() => {
-                      incrementRewatch(media.id);
-                      setStatus(media, "REWATCHING");
-                    }}
-                    icon={<RotateCcw className="h-4 w-4" />}
-                  />
+              {/* cover header */}
+              <div className="relative h-24 shrink-0">
+                {cover && (
+                  <Image src={cover} alt="" fill sizes="448px" className="scale-110 object-cover opacity-40 blur-xl" />
                 )}
-                {entry.rewatches > 0 && (
-                  <ToggleRow
-                    label="Undo a rewatch"
-                    hint={`Currently ${entry.rewatches}×`}
-                    onClick={() => decrementRewatch(media.id)}
-                    icon={<Undo2 className="h-4 w-4" />}
-                  />
-                )}
-
-                <ToggleRow
-                  label="Remove from library"
-                  hint="Deletes your progress and score"
-                  danger
-                  onClick={() => setConfirmRemove(true)}
-                  icon={<Trash2 className="h-4 w-4" />}
-                />
+                <div className="absolute inset-0 bg-gradient-to-t from-abyss-900 via-abyss-900/60 to-abyss-900/10" />
+                <button
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="absolute right-3 top-3 z-10 rounded-full bg-abyss-950/50 p-1.5 text-white/70 outline-none backdrop-blur-md transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-4">
+                  <div className="relative h-[4.5rem] w-12 shrink-0 overflow-hidden rounded-xl bg-abyss-700 shadow-lg ring-1 ring-white/15">
+                    {cover && <Image src={cover} alt="" fill sizes="48px" className="object-cover" />}
+                  </div>
+                  <div className="min-w-0 pb-0.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-waku-cinematic">
+                      {inList ? "In your library" : "Add to library"}
+                    </p>
+                    <h2 className="line-clamp-1 font-display text-lg font-extrabold leading-tight text-white">
+                      {title}
+                    </h2>
+                  </div>
+                </div>
               </div>
-            </SheetSection>
-          </>
-        )}
 
-        <div className="h-2" />
-      </Sheet>
+              {/* body */}
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 pb-4 pt-4">
+                {/* status tiles */}
+                <div>
+                  <Label>{inList ? "Status" : "How are you tracking it?"}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {STATUS_ORDER.map((s) => {
+                      const m = STATUS_META[s];
+                      const Icon = m.icon;
+                      const active = activeStatus === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => chooseStatus(s)}
+                          className={cn(
+                            "flex flex-col items-center gap-1.5 rounded-2xl px-1 py-3 outline-none transition-all focus-visible:ring-2 focus-visible:ring-waku-400",
+                            active ? "" : "bg-white/[0.04] ring-1 ring-inset ring-white/8 hover:bg-white/[0.08]",
+                          )}
+                          style={active ? { background: m.soft, boxShadow: `inset 0 0 0 1.5px ${m.color}` } : undefined}
+                        >
+                          <span
+                            className="flex h-8 w-8 items-center justify-center rounded-xl"
+                            style={{ background: active ? `${m.color}2e` : "rgba(255,255,255,0.05)" }}
+                          >
+                            <Icon className="h-4 w-4" style={{ color: m.color }} />
+                          </span>
+                          <span className={cn("text-[11px] font-bold", active ? "text-white" : "text-white/70")}>
+                            {STATUS_LABEL[s]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* progress */}
+                <div>
+                  <Label hint={total ? `${progress} / ${total} ${unitWord}` : `${progress} ${unitWord}`}>Progress</Label>
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-waku-400 to-waku-600 transition-[width] duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <ProgressStepper value={progress} total={total} onChange={setProgressValue} size="sm" label={title} />
+                  </div>
+                </div>
+
+                {/* rating */}
+                <div>
+                  <Label>Your rating</Label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {QUICK_SCORES.map((v) => {
+                      const t = tierForScore(v);
+                      const active = activeScore != null && Math.abs(activeScore - v) < 0.05;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => chooseScore(v)}
+                          className="h-8 min-w-[2.5rem] rounded-xl px-2 text-xs font-bold tabular-nums outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-waku-400"
+                          style={{
+                            background: t.soft,
+                            color: t.text,
+                            boxShadow: active ? `inset 0 0 0 1.5px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
+                          }}
+                        >
+                          {v.toFixed(1)}
+                        </button>
+                      );
+                    })}
+                    {!inList && draftScore != null && (
+                      <button
+                        type="button"
+                        onClick={() => setDraftScore(null)}
+                        aria-label="Clear rating"
+                        className="flex h-8 w-8 items-center justify-center rounded-xl text-white/45 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {inList && (
+                    <button
+                      type="button"
+                      onClick={() => requestRate(media.id)}
+                      className="mt-2.5 flex w-full items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-left outline-none ring-1 ring-inset ring-white/8 transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-waku-400"
+                    >
+                      <Sparkles className="h-4 w-4 shrink-0 text-waku-cinematic" />
+                      <span className="flex-1 text-sm font-semibold text-white">
+                        {entry.score != null ? `Fine-tune · ${formatScore(entry.score)}` : "Rate with the dial"}
+                      </span>
+                      <span className="text-xs text-white/45">{entry.smart ? "Smart Rated" : "Open"}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* extras — edit mode only */}
+                {inList && (
+                  <div className="flex flex-wrap gap-2 border-t border-white/[0.07] pt-4">
+                    <ExtraBtn
+                      active={entry.favorite}
+                      color="#ff5b8f"
+                      icon={<Heart className={cn("h-3.5 w-3.5", entry.favorite && "fill-current")} />}
+                      label={entry.favorite ? "Favorited" : "Favorite"}
+                      onClick={() => toggleFavorite(media.id)}
+                    />
+                    {entry.status === "COMPLETED" && (
+                      <ExtraBtn
+                        icon={<RotateCcw className="h-3.5 w-3.5" />}
+                        label="Rewatch"
+                        onClick={() => {
+                          incrementRewatch(media.id);
+                          setStatus(media, "REWATCHING");
+                        }}
+                      />
+                    )}
+                    {entry.rewatches > 0 && (
+                      <ExtraBtn
+                        icon={<Undo2 className="h-3.5 w-3.5" />}
+                        label={`Undo rewatch (${entry.rewatches})`}
+                        onClick={() => decrementRewatch(media.id)}
+                      />
+                    )}
+                    <ExtraBtn
+                      danger
+                      icon={<Trash2 className="h-3.5 w-3.5" />}
+                      label="Remove"
+                      onClick={() => setConfirmRemove(true)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* footer */}
+              <div className="shrink-0 border-t border-white/[0.07] p-4">
+                {inList ? (
+                  <button
+                    onClick={onClose}
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 text-sm font-bold text-white outline-none transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-waku-400"
+                  >
+                    <Check className="h-4 w-4" /> Done
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={commitAdd}
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-waku-500 to-iris-600 text-sm font-bold text-white outline-none transition-[filter] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-waku-400"
+                    >
+                      <LibraryIcon className="h-4 w-4" /> Add to library
+                    </button>
+                    <p className="mt-2 text-center text-[11px] text-white/35">
+                      Saving as <span className="text-white/60">{STATUS_LABEL[draftStatus]}</span>
+                      {draftProgress > 0 && <> · {draftProgress} {unitWord}</>}
+                      {draftScore != null && <> · rated {draftScore.toFixed(1)}</>}
+                    </p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ConfirmDialog
         open={confirmRemove}
@@ -303,26 +330,29 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   );
 }
 
-function Divider() {
-  return <div className="mx-5 h-px bg-white/[0.07]" />;
+function Label({ children, hint }: { children: React.ReactNode; hint?: string }) {
+  return (
+    <div className="mb-2.5 flex items-center justify-between">
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{children}</span>
+      {hint && <span className="text-[11px] font-semibold tabular-nums text-white/55">{hint}</span>}
+    </div>
+  );
 }
 
-function ToggleRow({
-  label,
-  hint,
+function ExtraBtn({
   icon,
-  active,
-  activeColor,
-  danger,
+  label,
   onClick,
+  active,
+  color,
+  danger,
 }: {
-  label: string;
-  hint?: string;
   icon: React.ReactNode;
-  active?: boolean;
-  activeColor?: string;
-  danger?: boolean;
+  label: string;
   onClick: () => void;
+  active?: boolean;
+  color?: string;
+  danger?: boolean;
 }) {
   return (
     <button
@@ -330,22 +360,17 @@ function ToggleRow({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex min-h-[3rem] w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-waku-400",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-waku-400",
         danger
-          ? "bg-white/[0.04] text-rose-300/90 ring-white/8 hover:bg-rose-500/12 hover:text-rose-200"
+          ? "text-rose-300/90 ring-white/8 hover:bg-rose-500/12 hover:text-rose-200"
           : active
             ? "ring-transparent"
-            : "bg-white/[0.04] text-white/85 ring-white/8 hover:bg-white/[0.08]",
+            : "text-white/80 ring-white/10 hover:bg-white/[0.08]",
       )}
-      style={active && activeColor ? { background: `${activeColor}22`, color: activeColor, boxShadow: `inset 0 0 0 1.5px ${activeColor}` } : undefined}
+      style={active && color ? { background: `${color}22`, color, boxShadow: `inset 0 0 0 1.5px ${color}` } : undefined}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{label}</span>
-        {hint && <span className="block truncate text-xs text-white/45">{hint}</span>}
-      </span>
+      {icon}
+      {label}
     </button>
   );
 }
