@@ -8,7 +8,7 @@ import { useWaku, useEntriesList, type LibraryEntry } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 import { median, criticBias } from "@/lib/ranking-stats";
-import { formatScore, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { TopThree } from "@/components/rankings/podium";
@@ -95,7 +95,7 @@ export default function RankingsPage() {
       <PageHeader
         icon={<Trophy className="h-5 w-5" />}
         title="Rankings"
-        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${formatScore(avg)}` : undefined}
+        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${tierForScore(avg).grade}` : undefined}
       />
 
       {ranked.length === 0 ? (
@@ -114,8 +114,8 @@ export default function RankingsPage() {
             <Insight
               icon={<Sigma className="h-3.5 w-3.5" />}
               label="Median"
-              value={formatScore(insights.med)}
-              hint="middle score"
+              value={tierForScore(insights.med).grade}
+              hint="middle grade"
               accent="#6ea8ff"
             />
             <Insight
@@ -321,10 +321,10 @@ function RankRow({
       </div>
 
       <span
-        className={cn("shrink-0 text-right font-black tabular-nums", elite ? "w-11 text-lg" : "w-9 text-sm")}
+        className={cn("shrink-0 text-right font-black", elite ? "w-11 text-2xl" : "w-9 text-lg")}
         style={{ color: accent }}
       >
-        {formatScore(entry.score)}
+        {tier.grade}
       </span>
 
       <button

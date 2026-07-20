@@ -46,12 +46,6 @@ async function fileToResizedDataUrl(file: File, max = 256): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.85);
 }
 
-/** Numeric range label for a tier bucket (avoids showing tier names). */
-function tierRangeLabel(min: number, next: number | null): string {
-  const hi = next != null ? next : 10;
-  return `${min}–${hi}`;
-}
-
 export default function ProfilePage() {
   const mounted = useMounted();
   const entries = useEntriesList();
@@ -128,9 +122,9 @@ export default function ProfilePage() {
   const standing = useMemo(() => otakuStanding(stats.total), [stats.total]);
 
   const distribution = useMemo<DistributionBucket[]>(() => {
-    const buckets = TIERS.map((t, i) => ({
+    const buckets = TIERS.map((t) => ({
       tier: t,
-      range: tierRangeLabel(t.min, TIERS[i + 1]?.min ?? null),
+      range: t.grade,
       count: 0,
     }));
     for (const e of entries) {
@@ -317,7 +311,7 @@ export default function ProfilePage() {
             <StatTile icon={<Film className="h-3.5 w-3.5" />} label="Tracked" value={stats.total} />
             <StatTile icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Completed" value={stats.completed} />
             <StatTile icon={<Clock className="h-3.5 w-3.5" />} label="Hours" value={stats.hours.toLocaleString()} />
-            <StatTile icon={<Star className="h-3.5 w-3.5" />} label="Avg score" value={formatScore(stats.avg || null)} />
+            <StatTile icon={<Star className="h-3.5 w-3.5" />} label="Avg grade" value={stats.avg ? tierForScore(stats.avg).grade : "–"} />
             <StatTile icon={<Percent className="h-3.5 w-3.5" />} label="Completion" value={`${stats.completionRate}%`} />
             <StatTile icon={<BookOpen className="h-3.5 w-3.5" />} label="Chapters" value={stats.chapters.toLocaleString()} />
             <StatTile icon={<Heart className="h-3.5 w-3.5" />} label="Favorites" value={stats.favorites} />

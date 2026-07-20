@@ -1,64 +1,57 @@
 "use client";
 
-import { cn, formatScore } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 
 interface ScoreBadgeProps {
-  /** 0–10 score */
+  /** internal 0–10 score (resolved to a letter grade) */
   score?: number | null;
   size?: "sm" | "md" | "lg" | "xl";
   /**
-   * Frosted dark plate behind the numeral so it stays legible over busy
-   * artwork. On by default; turn off when it already sits on a quiet surface.
+   * Frosted dark plate behind the mark so it stays legible over busy artwork.
+   * On by default; turn off when it already sits on a quiet surface.
    */
   plate?: boolean;
   className?: string;
 }
 
 const SIZES = {
-  sm: { text: "text-[13px]", pad: "px-1.5 pb-[3px] pt-0.5", radius: "rounded-md", rule: 2 },
-  md: { text: "text-xl", pad: "px-2 pb-1 pt-0.5", radius: "rounded-lg", rule: 2 },
-  lg: { text: "text-4xl", pad: "px-3 pb-1.5 pt-1", radius: "rounded-xl", rule: 3 },
-  xl: { text: "text-7xl", pad: "px-4 pb-2 pt-1.5", radius: "rounded-2xl", rule: 4 },
+  sm: { text: "text-[15px]", box: "h-6 w-6", radius: "rounded-md" },
+  md: { text: "text-xl", box: "h-8 w-8", radius: "rounded-lg" },
+  lg: { text: "text-4xl", box: "h-14 w-14", radius: "rounded-xl" },
+  xl: { text: "text-7xl", box: "h-24 w-24", radius: "rounded-2xl" },
 };
 
 /**
- * Editorial-numeral score: a confident, tier-colored number underlined by a
- * thin tier-colored rule — magazine-like, flat, and legible. Deliberately not a
- * glowing ring or gradient disc; the number is the object and its tier color +
- * baseline rule carry the "how good" at a glance without any shine.
+ * The verdict-grade mark — a bold letter (S…F) tinted by its tier, in a
+ * tier-colored plate. This is the one rating display used across the app; the
+ * underlying 0–10 score is resolved to its grade so the number never shows.
  */
 export function ScoreBadge({ score, size = "md", plate = true, className }: ScoreBadgeProps) {
   const tier = tierForScore(score);
   const perfect = isPerfect(score);
   const dim = SIZES[size];
-  const rule = perfect ? GOLD : tier.color;
+  const has = score != null;
 
   return (
-    <div
+    <span
       className={cn(
-        "inline-flex items-center justify-center leading-none",
+        "inline-flex items-center justify-center font-black leading-none tracking-tight",
+        dim.box,
         dim.radius,
-        dim.pad,
-        plate && "backdrop-blur-sm",
         className,
       )}
       style={{
-        background: plate ? "rgba(8,11,20,0.68)" : "transparent",
-        boxShadow: plate ? "0 1px 3px -1px rgba(0,0,0,0.5)" : undefined,
+        background: has ? tier.soft : "rgba(255,255,255,0.05)",
+        color: has ? tier.text : "rgba(255,255,255,0.4)",
+        boxShadow: perfect
+          ? `inset 0 0 0 1.5px ${GOLD}`
+          : `inset 0 0 0 1.5px ${has ? tier.color : "rgba(255,255,255,0.15)"}`,
+        backdropFilter: plate ? "blur(4px)" : undefined,
       }}
-      title={score != null ? formatScore(score) : "Unrated"}
+      title={has ? `${tier.grade} · ${tier.label}` : "Unrated"}
     >
-      <span
-        className={cn("font-bold tabular-nums tracking-tight", dim.text)}
-        style={{
-          color: score != null ? tier.text : "rgba(255,255,255,0.4)",
-          borderBottom: `${dim.rule}px solid ${score != null ? rule : "rgba(255,255,255,0.2)"}`,
-          paddingBottom: "1px",
-        }}
-      >
-        {score != null ? formatScore(score) : "–"}
-      </span>
-    </div>
+      <span className={dim.text}>{tier.grade}</span>
+    </span>
   );
 }

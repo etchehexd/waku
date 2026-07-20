@@ -1,25 +1,20 @@
 "use client";
 
-import { Star } from "lucide-react";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
-import { cn, formatScore } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type ChipSize = "xs" | "sm" | "md";
 
-const SIZE: Record<ChipSize, { box: string; icon: string; text: string; gap: string }> = {
-  xs: { box: "h-5 px-1.5", icon: "h-2.5 w-2.5", text: "text-[10px]", gap: "gap-1" },
-  sm: { box: "h-6 px-2", icon: "h-3 w-3", text: "text-[11px]", gap: "gap-1" },
-  md: { box: "h-7 px-2.5", icon: "h-3.5 w-3.5", text: "text-xs", gap: "gap-1.5" },
+const SIZE: Record<ChipSize, { box: string; grade: string; label: string }> = {
+  xs: { box: "h-5 px-1.5 gap-1", grade: "text-[11px]", label: "text-[10px]" },
+  sm: { box: "h-6 px-2 gap-1", grade: "text-[13px]", label: "text-[11px]" },
+  md: { box: "h-7 px-2.5 gap-1.5", grade: "text-sm", label: "text-xs" },
 };
 
 /**
- * Compact, tier-tinted rating pill — the standard way a user's score is shown
- * on library items. It reads as one integrated object (filled star + number)
- * instead of a bare icon, and borrows its color from the shared rating tiers
- * so a score's quality is legible at a glance without shouting.
- *
- * Unrated entries get a deliberately quiet outlined treatment rather than a
- * loud placeholder — present, but clearly secondary.
+ * Tier-tinted verdict-grade pill — the standard way a user's rating shows on
+ * library items. Reads as one object: the letter grade plus (at md) its word.
+ * Unrated entries get a quiet outlined mark rather than a loud placeholder.
  */
 export function RatingChip({
   score,
@@ -27,10 +22,9 @@ export function RatingChip({
   showUnrated = true,
   className,
 }: {
-  /** 0–10 score, or null/undefined when the title is unrated. */
+  /** internal 0–10 score, or null/undefined when unrated */
   score?: number | null;
   size?: ChipSize;
-  /** Render a muted "unrated" chip when there's no score. */
   showUnrated?: boolean;
   className?: string;
 }) {
@@ -39,51 +33,36 @@ export function RatingChip({
 
   if (!rated && !showUnrated) return null;
 
+  const tier = tierForScore(score);
+  const perfect = isPerfect(score);
+
   if (!rated) {
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center rounded-full font-semibold tabular-nums text-white/40 ring-1 ring-inset ring-white/12",
+          "inline-flex shrink-0 items-center rounded-full font-black text-white/40 ring-1 ring-inset ring-white/12",
           dim.box,
-          dim.gap,
-          dim.text,
           className,
         )}
         title="Not rated yet"
       >
-        <Star className={dim.icon} aria-hidden />
-        <span className="sr-only">Not rated</span>
-        <span aria-hidden>&ndash;</span>
+        <span className={dim.grade}>–</span>
       </span>
     );
   }
 
-  const tier = tierForScore(score);
-  const perfect = isPerfect(score);
-
   return (
     <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full font-semibold tabular-nums",
-        dim.box,
-        dim.gap,
-        dim.text,
-        className,
-      )}
+      className={cn("inline-flex shrink-0 items-center rounded-full", dim.box, className)}
       style={{
         background: tier.soft,
         color: tier.text,
-        // A hairline in the tier color ties the chip together; a perfect 10
-        // earns the same gold outline the score ring uses elsewhere.
-        boxShadow: perfect
-          ? `inset 0 0 0 1px ${GOLD}`
-          : `inset 0 0 0 1px ${tier.color}66`,
+        boxShadow: perfect ? `inset 0 0 0 1px ${GOLD}` : `inset 0 0 0 1px ${tier.color}66`,
       }}
-      title={`Your rating: ${formatScore(score)} · ${tier.label}`}
+      title={`Your rating: ${tier.grade} · ${tier.label}`}
     >
-      <Star className={cn(dim.icon, "fill-current")} aria-hidden />
-      <span className="sr-only">Your rating:</span>
-      {formatScore(score)}
+      <span className={cn("font-black leading-none", dim.grade)}>{tier.grade}</span>
+      {size === "md" && <span className={cn("font-bold", dim.label)}>{tier.label}</span>}
     </span>
   );
 }

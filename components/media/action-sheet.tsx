@@ -16,11 +16,10 @@ import {
 import type { MediaSummary } from "@/lib/anilist/types";
 import { useWaku, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
-import { QUICK_SCORES } from "./score-picker";
 import { ProgressStepper } from "./progress-stepper";
-import { tierForScore } from "@/lib/rating";
+import { GRADE_TIERS, tierForScore } from "@/lib/rating";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { cn, formatScore } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ActionSheetProps {
   media: MediaSummary;
@@ -195,27 +194,28 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                   </div>
                 </div>
 
-                {/* rating */}
+                {/* rating — verdict grade */}
                 <div>
-                  <Label>Your rating</Label>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {QUICK_SCORES.map((v) => {
-                      const t = tierForScore(v);
-                      const active = activeScore != null && Math.abs(activeScore - v) < 0.05;
+                  <Label hint={activeScore != null ? tierForScore(activeScore).label : undefined}>Your verdict</Label>
+                  <div className="flex items-center gap-1.5">
+                    {GRADE_TIERS.map((t) => {
+                      const active = activeScore != null && tierForScore(activeScore).key === t.key;
                       return (
                         <button
-                          key={v}
+                          key={t.key}
                           type="button"
                           aria-pressed={active}
-                          onClick={() => chooseScore(v)}
-                          className="h-8 min-w-[2.5rem] rounded-xl px-2 text-xs font-bold tabular-nums outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-waku-400"
+                          aria-label={`${t.grade} — ${t.label}`}
+                          onClick={() => chooseScore(t.anchor)}
+                          className="flex h-9 flex-1 items-center justify-center rounded-xl text-base font-black outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-waku-400"
                           style={{
                             background: t.soft,
                             color: t.text,
-                            boxShadow: active ? `inset 0 0 0 1.5px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
+                            boxShadow: active ? `inset 0 0 0 2px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
+                            transform: active ? "scale(1.06)" : undefined,
                           }}
                         >
-                          {v.toFixed(1)}
+                          {t.grade}
                         </button>
                       );
                     })}
@@ -224,7 +224,7 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                         type="button"
                         onClick={() => setDraftScore(null)}
                         aria-label="Clear rating"
-                        className="flex h-8 w-8 items-center justify-center rounded-xl text-white/45 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white/45 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -238,7 +238,7 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                     >
                       <Sparkles className="h-4 w-4 shrink-0 text-waku-cinematic" />
                       <span className="flex-1 text-sm font-semibold text-white">
-                        {entry.score != null ? `Fine-tune · ${formatScore(entry.score)}` : "Rate with the dial"}
+                        {entry.score != null ? `Adjust verdict · ${tierForScore(entry.score).grade}` : "Rate this title"}
                       </span>
                       <span className="text-xs text-white/45">{entry.smart ? "Smart Rated" : "Open"}</span>
                     </button>
@@ -302,7 +302,7 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                     <p className="mt-2 text-center text-[11px] text-white/35">
                       Saving as <span className="text-white/60">{STATUS_LABEL[draftStatus]}</span>
                       {draftProgress > 0 && <> · {draftProgress} {unitWord}</>}
-                      {draftScore != null && <> · rated {draftScore.toFixed(1)}</>}
+                      {draftScore != null && <> · verdict {tierForScore(draftScore).grade}</>}
                     </p>
                   </>
                 )}
