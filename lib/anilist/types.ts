@@ -95,8 +95,20 @@ export interface MediaSummary {
   nextAiringEpisode: AiringSchedule | null;
 }
 
+export interface MediaRanking {
+  rank: number;
+  type: "RATED" | "POPULAR";
+  allTime: boolean;
+  /** Human-readable context, e.g. "highest rated all time". */
+  context: string;
+  year: number | null;
+  season: string | null;
+  format: MediaFormat | null;
+}
+
 export interface MediaDetail extends MediaSummary {
   description: string | null;
+  rankings: MediaRanking[];
   studios: { nodes: { id: number; name: string; isAnimationStudio: boolean }[] };
   tags: MediaTag[];
   startDate: { year: number | null; month: number | null; day: number | null };

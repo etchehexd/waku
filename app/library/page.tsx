@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import {
   useEntriesList,
+  useWaku,
   STATUS_LABEL,
   STATUS_ORDER,
   type LibraryEntry,
@@ -40,6 +41,7 @@ import { useMounted } from "@/lib/use-mounted";
 import { cn, formatScore } from "@/lib/utils";
 import { STATUS_META } from "@/components/media/status-meta";
 import { ScoreBadge } from "@/components/media/score-badge";
+import { ProgressStepper } from "@/components/media/progress-stepper";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/library/entry-card";
 import { SortMenu } from "@/components/library/sort-menu";
@@ -395,32 +397,41 @@ function LayoutToggle({
   );
 }
 
-/** Dense, poster-less box: name + status + progress + score. */
+/** Dense, poster-less box: name + status + score, with an inline progress stepper. */
 function CompactRow({ entry }: { entry: LibraryEntry }) {
   const { media } = entry;
   const meta = STATUS_META[entry.status];
   const total = entryTotal(entry);
+  const setProgress = useWaku((s) => s.setProgress);
+
   return (
-    <Link
-      href={`/media/${media.id}`}
-      className="group flex items-center gap-3 rounded-xl bg-white/[0.025] p-2.5 outline-none ring-1 ring-inset ring-white/[0.07] transition-colors hover:bg-white/[0.06] focus-visible:ring-2 focus-visible:ring-waku-400"
-    >
+    <div className="group flex items-center gap-2.5 rounded-xl bg-white/[0.025] p-2.5 ring-1 ring-inset ring-white/[0.07] transition-colors hover:bg-white/[0.05]">
       <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-bold leading-tight text-white group-hover:text-waku-cinematic">
+      <Link
+        href={`/media/${media.id}`}
+        className="min-w-0 flex-1 rounded outline-none focus-visible:ring-2 focus-visible:ring-waku-400"
+      >
+        <span className="block truncate text-[13px] font-bold leading-tight text-white transition-colors group-hover:text-waku-cinematic">
           {media.title}
         </span>
-        <span className="mt-0.5 block text-[10px] font-medium text-white/45">
+        <span className="mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold">
           <span style={{ color: meta.color }}>{STATUS_LABEL[entry.status]}</span>
-          {" · "}
-          <span className="tabular-nums">
-            {entry.progress}
-            {total ? `/${total}` : ""}
-          </span>
+          {entry.score != null && (
+            <>
+              <span className="text-white/25">·</span>
+              <ScoreBadge score={entry.score} size="sm" plate={false} />
+            </>
+          )}
         </span>
-      </span>
-      {entry.score != null && <ScoreBadge score={entry.score} size="sm" plate={false} />}
-    </Link>
+      </Link>
+      <ProgressStepper
+        value={entry.progress}
+        total={total}
+        onChange={(n) => setProgress(media.id, n)}
+        size="sm"
+        label={media.title}
+      />
+    </div>
   );
 }
 

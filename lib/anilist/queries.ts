@@ -261,6 +261,15 @@ export const MEDIA_DETAIL_QUERY = /* GraphQL */ `
           }
         }
       }
+      rankings {
+        rank
+        type
+        allTime
+        context
+        year
+        season
+        format
+      }
     }
   }
 `;

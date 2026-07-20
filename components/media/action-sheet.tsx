@@ -7,8 +7,6 @@ import {
   RotateCcw,
   Undo2,
   Trash2,
-  Minus,
-  Plus,
   Sparkles,
   Check,
   Library as LibraryIcon,
@@ -19,6 +17,7 @@ import { useWaku, STATUS_LABEL, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
 import { StatusPicker } from "./status-picker";
 import { ScorePicker } from "./score-picker";
+import { ProgressStepper } from "./progress-stepper";
 import { RatingChip } from "./rating-chip";
 import { Sheet, SheetSection } from "@/components/ui/sheet";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -89,14 +88,8 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   const clamp = (n: number) => Math.max(0, total ? Math.min(n, total) : n);
 
   const progress = inList ? entry.progress : draftProgress;
-  const stepProgress = (delta: number) => {
-    const next = clamp(progress + delta);
-    if (inList) setProgress(media.id, next);
-    else setDraftProgress(next);
-  };
-  const commitProgressInput = (raw: string) => {
-    const n = parseInt(raw, 10);
-    const next = clamp(Number.isFinite(n) ? n : progress);
+  const setProgressValue = (n: number) => {
+    const next = clamp(n);
     if (inList) setProgress(media.id, next);
     else setDraftProgress(next);
   };
@@ -191,43 +184,19 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
           hint={total ? `${progress} / ${total} ${unitWord}` : `${progress} ${unitWord}`}
         >
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="glass"
-              size="icon-sm"
-              onClick={() => stepProgress(-1)}
-              disabled={progress <= 0}
-              aria-label="Decrease progress"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={total ?? undefined}
-              value={progress}
-              onChange={(e) => commitProgressInput(e.target.value)}
-              aria-label={`Progress${total ? `, 0 to ${total}` : ""}`}
-              className="input-field h-9 w-16 text-center text-sm font-semibold tabular-nums"
-            />
-
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-waku-400 to-waku-600 transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
-
-            <Button
-              variant="glass"
-              size="icon-sm"
-              onClick={() => stepProgress(1)}
-              disabled={total != null && progress >= total}
-              aria-label="Increase progress"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <ProgressStepper
+              value={progress}
+              total={total ?? null}
+              onChange={setProgressValue}
+              size="sm"
+              label={title}
+            />
           </div>
           {!total && (
             <p className="mt-2 text-[11px] text-white/35">

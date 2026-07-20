@@ -64,99 +64,98 @@ export default async function MediaPage({ params }: Params) {
     { label: "Aired", value: fmtDate(media.startDate) },
     { label: studios.length > 1 ? "Studios" : "Studio", value: studios.map((s) => s.name).join(", ") || null },
     { label: "Source", value: media.source?.replace(/_/g, " ").toLowerCase() },
+    { label: "Country", value: media.countryOfOrigin },
   ];
 
   return (
     <article className="overflow-x-clip pb-20">
       <DetailHero media={media} />
 
-      <div className="container mt-8 md:mt-10">
-        <div className="mx-auto max-w-2xl">
-          {/* Inline facts band — replaces the boxed sidebar */}
-          <FactBand facts={facts} />
-
-          {/* Synopsis */}
-          <section className="mt-9">
+      <div className="container mt-10 md:mt-12">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_236px] lg:gap-10">
+          {/* main column */}
+          <div className="min-w-0">
             <SectionHeading>Synopsis</SectionHeading>
             {description ? (
               <Synopsis text={description} />
             ) : (
-              <p className="text-center text-sm italic text-white/35">
-                No synopsis has been written for this title yet.
-              </p>
+              <p className="text-sm italic text-white/35">No synopsis has been written for this title yet.</p>
             )}
-          </section>
 
-          {characters.length > 0 && (
-            <section className="mt-10">
-              <SectionHeading icon={<Users className="h-4 w-4" />} count={characters.length}>
-                Characters
-              </SectionHeading>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {characters.map((edge) => (
-                  <CharacterCard
-                    key={`${edge.node.id}-${edge.role}`}
-                    name={edge.node.name.full}
-                    image={edge.node.image.large}
-                    role={edge.role}
-                    actorName={edge.voiceActors?.[0]?.name.full}
-                    actorImage={edge.voiceActors?.[0]?.image.large}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {relations.length > 0 && (
-            <MediaScroller title="Related stories" icon={<Network className="h-4 w-4" />}>
-              {relations.map((edge) => (
-                <div key={`${edge.node.id}-${edge.relationType}`} className="w-[124px] shrink-0">
-                  <span className="mb-1.5 block truncate text-[11px] font-medium uppercase tracking-wide text-white/40">
-                    {edge.relationType.replace(/_/g, " ").toLowerCase()}
-                  </span>
-                  <MediaCard media={edge.node} className="!w-full" />
+            {characters.length > 0 && (
+              <section className="mt-10">
+                <SectionHeading icon={<Users className="h-4 w-4" />} count={characters.length}>
+                  Characters
+                </SectionHeading>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  {characters.map((edge) => (
+                    <CharacterCard
+                      key={`${edge.node.id}-${edge.role}`}
+                      name={edge.node.name.full}
+                      image={edge.node.image.large}
+                      role={edge.role}
+                      actorName={edge.voiceActors?.[0]?.name.full}
+                      actorImage={edge.voiceActors?.[0]?.image.large}
+                    />
+                  ))}
                 </div>
-              ))}
-            </MediaScroller>
-          )}
+              </section>
+            )}
 
-          {recs.length > 0 && (
-            <MediaScroller title="You might also like" icon={<Sparkles className="h-4 w-4" />}>
-              {recs.map((m) => (
-                <MediaCard key={m.id} media={m} className="!w-[124px]" />
-              ))}
-            </MediaScroller>
-          )}
+            {relations.length > 0 && (
+              <MediaScroller title="Related stories" icon={<Network className="h-4 w-4" />}>
+                {relations.map((edge) => (
+                  <div key={`${edge.node.id}-${edge.relationType}`} className="w-[124px] shrink-0">
+                    <span className="mb-1.5 block truncate text-[11px] font-medium uppercase tracking-wide text-white/40">
+                      {edge.relationType.replace(/_/g, " ").toLowerCase()}
+                    </span>
+                    <MediaCard media={edge.node} className="!w-full" />
+                  </div>
+                ))}
+              </MediaScroller>
+            )}
+
+            {recs.length > 0 && (
+              <MediaScroller title="You might also like" icon={<Sparkles className="h-4 w-4" />}>
+                {recs.map((m) => (
+                  <MediaCard key={m.id} media={m} className="!w-[124px]" />
+                ))}
+              </MediaScroller>
+            )}
+          </div>
+
+          {/* facts rail */}
+          <aside className="mt-10 lg:mt-0 lg:sticky lg:top-24 lg:self-start">
+            <SpecList facts={facts} />
+          </aside>
         </div>
       </div>
     </article>
   );
 }
 
-/** Centered, hairline-divided inline facts — the magazine layout's spec line. */
-function FactBand({ facts }: { facts: Fact[] }) {
+/** Compact, hairline-ruled details list for the sidebar. */
+function SpecList({ facts }: { facts: Fact[] }) {
   const shown = facts.filter((f) => f.value != null && f.value !== "");
   if (shown.length === 0) return null;
   return (
-    <dl className="flex flex-wrap items-stretch justify-center gap-y-3 border-y border-white/[0.08] py-3.5">
-      {shown.map((f, i) => (
-        <div
-          key={f.label}
-          className={i > 0 ? "border-l border-white/[0.08] px-4 sm:px-6" : "px-4 sm:px-6"}
-        >
-          <dt className="text-center text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
-            {f.label}
-          </dt>
-          <dd className="mt-0.5 text-center text-[13px] font-semibold capitalize text-white/90 [overflow-wrap:anywhere]">
-            {f.value}
-          </dd>
-        </div>
-      ))}
+    <dl className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+      <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Details</p>
+      <div className="divide-y divide-white/[0.07]">
+        {shown.map((f) => (
+          <div key={f.label} className="flex items-baseline justify-between gap-4 py-2">
+            <dt className="shrink-0 text-[12px] text-white/45">{f.label}</dt>
+            <dd className="min-w-0 text-right text-[12px] font-semibold capitalize text-white/90 [overflow-wrap:anywhere]">
+              {f.value}
+            </dd>
+          </div>
+        ))}
+      </div>
     </dl>
   );
 }
 
-/** Centered magazine section heading — accent tick above a bold label. */
+/** Left-aligned section heading — accent tick + bold label. */
 function SectionHeading({
   icon,
   count,
@@ -167,17 +166,18 @@ function SectionHeading({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-col items-center gap-1.5 text-center">
-      <span aria-hidden className="h-1 w-7 rounded-full bg-waku-cinematic" />
+    <div className="mb-4 flex items-center gap-2.5">
+      <span aria-hidden className="h-5 w-1 rounded-full bg-waku-cinematic" />
       <h2 className="flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-white">
         {icon && <span className="text-waku-cinematic">{icon}</span>}
         {children}
-        {count != null && (
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-white/55">
-            {count}
-          </span>
-        )}
       </h2>
+      {count != null && (
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-white/55">
+          {count}
+        </span>
+      )}
+      <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
     </div>
   );
 }

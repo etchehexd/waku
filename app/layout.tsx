@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Navbar } from "@/components/layout/navbar";
+import { AuthGate } from "@/components/auth/auth-gate";
 import { OrnamentBackdrop } from "@/components/layout/ornament-backdrop";
 import { ThemeApplier } from "@/components/layout/theme-applier";
 import { THEME_STORAGE_KEY, DEFAULT_PALETTE } from "@/lib/theme";
@@ -61,11 +62,13 @@ export default function RootLayout({
         <Providers>
           <ThemeApplier />
           <OrnamentBackdrop />
-          <Navbar />
-          <main className="pb-24 pt-14 md:pb-16 md:pt-0">{children}</main>
-          <footer className="border-t border-white/5 py-10 text-center text-xs text-white/35">
-            <p>Waku · Made with 青い炎</p>
-          </footer>
+          <AuthGate>
+            <Navbar />
+            <main className="pb-24 pt-14 md:pb-16 md:pt-0">{children}</main>
+            <footer className="border-t border-white/5 py-10 text-center text-xs text-white/35">
+              <p>Waku · Made with 青い炎</p>
+            </footer>
+          </AuthGate>
         </Providers>
       </body>
     </html>

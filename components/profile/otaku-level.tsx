@@ -80,10 +80,10 @@ export function OtakuLadder({ standing }: { standing: OtakuStanding }) {
 
       {/* the full ladder */}
       <div className="relative mt-8">
-        {/* connector track */}
-        <div className="absolute left-0 right-0 top-[22px] h-1 rounded-full bg-white/8" aria-hidden />
+        {/* connector track — sits at the badge centre (12px top pad + 20px half-badge) */}
+        <div className="absolute left-0 right-0 top-[32px] h-1 rounded-full bg-white/8" aria-hidden />
         <motion.div
-          className="absolute left-0 top-[22px] h-1 rounded-full"
+          className="absolute left-0 top-[32px] h-1 rounded-full"
           style={{ background: `linear-gradient(90deg, ${OTAKU_RANKS[0].from}, ${rank.from})` }}
           initial={{ width: reduce ? `${fill * 100}%` : 0 }}
           animate={{ width: `${fill * 100}%` }}
@@ -91,7 +91,9 @@ export function OtakuLadder({ standing }: { standing: OtakuStanding }) {
           aria-hidden
         />
 
-        <ol className="no-scrollbar relative flex justify-between gap-1 overflow-x-auto pb-1">
+        {/* pt-3/pb-2 give the badge glow + current-rank ring room so the scroll
+            container never clips their tops or the status pips at the bottom */}
+        <ol className="no-scrollbar relative flex justify-between gap-1 overflow-x-auto px-0.5 pb-2 pt-3">
           {OTAKU_RANKS.map((r) => {
             const earned = r.index < rank.index || (r.index === rank.index);
             const current = r.index === rank.index;

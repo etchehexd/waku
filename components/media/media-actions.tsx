@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Minus, Heart, Settings2, Library as LibraryIcon, Check, Zap } from "lucide-react";
+import { Plus, Heart, Settings2, Library as LibraryIcon, Check, Zap } from "lucide-react";
 import type { MediaSummary } from "@/lib/anilist/types";
 import { useWaku, STATUS_LABEL } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
@@ -10,6 +10,7 @@ import { useAuthGate } from "@/lib/use-auth-gate";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { RatingChip } from "./rating-chip";
+import { ProgressStepper } from "./progress-stepper";
 import { ActionSheet } from "./action-sheet";
 
 /**
@@ -101,10 +102,6 @@ export function MediaActions({ media }: { media: MediaSummary }) {
   const behindBy = airedNow != null ? airedNow - entry.progress : 0;
   const showCatchUp = !isCompleted && behindBy > 0;
 
-  const step = (d: number) => {
-    const next = Math.max(0, entry.progress + d);
-    setProgress(media.id, total ? Math.min(next, total) : next);
-  };
   const complete = () => setStatus(media, "COMPLETED");
   const catchUp = () => airedNow != null && setProgress(media.id, airedNow);
 
@@ -147,46 +144,41 @@ export function MediaActions({ media }: { media: MediaSummary }) {
         </div>
 
         {/* progress */}
-        <div className="mt-3 flex items-center gap-2.5">
-          <Button variant="glass" size="icon-sm" onClick={() => step(-1)} disabled={entry.progress <= 0} aria-label="Decrease progress">
-            <Minus className="h-4 w-4" />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between text-[11px]">
-              <span className="font-medium text-white/45">Progress</span>
-              <span className="tabular-nums text-white/70">
-                {entry.progress}
-                {total ? ` / ${total}` : ""} {unit}
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center justify-between text-[11px]">
+            <span className="font-medium text-white/45">Progress</span>
+            <span className="tabular-nums text-white/70">
+              {entry.progress}
+              {total ? ` / ${total}` : ""} {unit}
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-waku-400 to-waku-600 transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
+            {canComplete ? (
+              <Button
+                variant="accent"
+                size="sm"
+                className="glow-accent"
+                onClick={complete}
+                aria-label={`Mark ${title} completed`}
+              >
+                <Check className="h-4 w-4" /> Complete
+              </Button>
+            ) : (
+              <ProgressStepper
+                value={entry.progress}
+                total={total ?? null}
+                onChange={(n) => setProgress(media.id, total ? Math.min(n, total) : Math.max(0, n))}
+                size="sm"
+                label={title}
+              />
+            )}
           </div>
-          {canComplete ? (
-            <Button
-              variant="accent"
-              size="sm"
-              className="glow-accent"
-              onClick={complete}
-              aria-label={`Mark ${title} completed`}
-            >
-              <Check className="h-4 w-4" /> Complete
-            </Button>
-          ) : (
-            <Button
-              variant={atMax ? "glass" : "primary"}
-              size="icon-sm"
-              onClick={() => step(1)}
-              disabled={atMax}
-              aria-label={atMax ? "Progress complete" : "Increase progress"}
-            >
-              {atMax ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            </Button>
-          )}
         </div>
 
         {/* Next-up nudge — a releasing title has aired past the user's spot. */}
