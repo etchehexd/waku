@@ -35,11 +35,10 @@ export function LibraryPulse() {
   const segments = STATUS_ORDER.filter((s) => data.counts[s] > 0);
 
   return (
-    <section className="container">
-      <Link
-        href="/library"
-        className="glass glass-interactive group block rounded-3xl p-4 outline-none focus-visible:ring-2 focus-visible:ring-waku-400 sm:p-5"
-      >
+    <Link
+      href="/library"
+      className="glass glass-interactive group block rounded-3xl p-4 outline-none focus-visible:ring-2 focus-visible:ring-waku-400 sm:p-5"
+    >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-waku-500/15 text-waku-cinematic ring-1 ring-inset ring-waku-400/25">
@@ -84,7 +83,6 @@ export function LibraryPulse() {
             );
           })}
         </div>
-      </Link>
-    </section>
+    </Link>
   );
 }

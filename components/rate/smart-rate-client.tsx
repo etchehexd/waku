@@ -17,6 +17,7 @@ import {
 } from "@/lib/smart-rating";
 import { ScoreBadge } from "@/components/media/score-badge";
 import { Button } from "@/components/ui/button";
+import { tierForScore } from "@/lib/rating";
 import { cn } from "@/lib/utils";
 
 /**
@@ -354,8 +355,14 @@ function Completion({
         <h1 className="mt-1 font-display text-xl font-bold text-white">{target.media.title}</h1>
         {score != null ? (
           <>
-            <div className="mx-auto my-5 flex justify-center">
-              <ScoreBadge score={score} size="lg" plate={false} />
+            <div className="mx-auto my-5 flex flex-col items-center gap-1.5">
+              <ScoreBadge score={score} size="xl" plate={false} />
+              <p
+                className="font-display text-lg font-extrabold uppercase tracking-wide"
+                style={{ color: tierForScore(score).text }}
+              >
+                {tierForScore(score).label}
+              </p>
             </div>
             <p className="text-sm text-white/55">
               Smart Rated from {rounds} comparison{rounds === 1 ? "" : "s"}. You can refine it any

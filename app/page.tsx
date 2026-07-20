@@ -3,7 +3,6 @@ import { getHomepage } from "@/lib/anilist/client";
 import { seasonNow } from "@/lib/utils";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { ContinueWatching } from "@/components/home/continue-watching";
-import { LibraryPulse } from "@/components/home/library-pulse";
 import { MediaRow } from "@/components/media/media-row";
 
 // Revalidate the homepage every 15 min at the edge.
@@ -53,7 +52,6 @@ export default async function HomePage() {
       <div className="flex flex-col gap-10 pb-6 pt-8 md:gap-14 md:pt-10">
         {/* Then your own collection, then the discovery rails. */}
         <ContinueWatching />
-        <LibraryPulse />
 
         <CategoryBlock title="Anime" icon={Clapperboard} accent="#5b8cff">
           <MediaRow

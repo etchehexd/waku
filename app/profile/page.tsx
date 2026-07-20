@@ -18,17 +18,15 @@ import { Button } from "@/components/ui/button";
 import { ProfileAuth } from "@/components/profile/profile-auth";
 import { SignInView } from "@/components/auth/sign-in-view";
 import { useWakuAuth } from "@/lib/supabase/sync";
-import { OtakuLevel, type OtakuLevelData } from "@/components/profile/otaku-level";
+import { OtakuLadder } from "@/components/profile/otaku-level";
+import { OtakuBadge } from "@/components/profile/otaku-badge";
+import { otakuStanding } from "@/lib/otaku";
+import { LibraryPulse } from "@/components/home/library-pulse";
 import { SettingsSheet } from "@/components/profile/settings-sheet";
 import {
   RatingDistribution,
   type DistributionBucket,
 } from "@/components/profile/rating-distribution";
-
-const OTAKU_LEVELS = [1, 10, 25, 50, 100, 250, 500, 1000];
-const LEVEL_NAMES = [
-  "Newcomer", "Fan", "Enthusiast", "Devotee", "Connoisseur", "Veteran", "Sage", "Legend",
-];
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -127,21 +125,7 @@ export default function ProfilePage() {
     };
   }, [entries]);
 
-  const level = useMemo<OtakuLevelData>(() => {
-    let lv = 0;
-    for (let i = 0; i < OTAKU_LEVELS.length; i++) if (stats.total >= OTAKU_LEVELS[i]) lv = i;
-    const floor = OTAKU_LEVELS[lv];
-    const next = OTAKU_LEVELS[lv + 1] ?? null;
-    const progress = next ? (stats.total - floor) / (next - floor) : 1;
-    return {
-      level: lv + 1,
-      name: LEVEL_NAMES[lv],
-      total: stats.total,
-      floor,
-      next,
-      progress: Math.max(0, Math.min(1, progress)),
-    };
-  }, [stats.total]);
+  const standing = useMemo(() => otakuStanding(stats.total), [stats.total]);
 
   const distribution = useMemo<DistributionBucket[]>(() => {
     const buckets = TIERS.map((t, i) => ({
@@ -218,7 +202,7 @@ export default function ProfilePage() {
               aria-label="Profile picture file"
             />
             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-abyss-800 px-2 py-0.5 text-[10px] font-bold text-waku-cinematic ring-1 ring-white/15">
-              LV {level.level}
+              LV {standing.level}
             </span>
           </div>
 
@@ -276,21 +260,17 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
-                <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{profile.displayName}</h1>
-                <p className="text-sm text-white/45">@{profile.username}</p>
-                <p className="mt-2 max-w-md text-sm text-white/65">{profile.bio}</p>
-                <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-start">
-                  <p className="text-xs font-medium uppercase tracking-wider text-waku-cinematic">
-                    Otaku {level.name} · Level {level.level}
-                  </p>
-                  {authUser ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
-                      <CheckCircle2 className="h-3 w-3" /> Synced · {authUser.email}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-white/40">Not signed in — data saved on this device</span>
-                  )}
+                <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 sm:justify-start">
+                  <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{profile.displayName}</h1>
+                  <span title={`Otaku rank: ${standing.rank.name} · Level ${standing.level}`} className="inline-flex">
+                    <OtakuBadge rank={standing.rank} size="md" glow />
+                  </span>
                 </div>
+                <p className="mt-1 text-sm text-white/45">@{profile.username}</p>
+                {profile.bio && <p className="mt-2 max-w-md text-sm text-white/65">{profile.bio}</p>}
+                {!authUser && (
+                  <p className="mt-2 text-xs text-white/40">Not signed in — data saved on this device</p>
+                )}
               </>
             )}
           </div>
@@ -305,10 +285,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Otaku level showpiece */}
+      {/* Otaku rank ladder */}
       <div className="mt-5">
-        <OtakuLevel data={level} />
+        <OtakuLadder standing={standing} />
       </div>
+
+      {/* Your shelf — moved here from the home page */}
+      {stats.total > 0 && (
+        <div className="mt-5">
+          <LibraryPulse />
+        </div>
+      )}
 
       {stats.total === 0 ? (
         <div className="glass glass-sheen mt-5 flex flex-col items-center gap-2 rounded-4xl p-10 text-center">

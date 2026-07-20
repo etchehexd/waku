@@ -1,116 +1,140 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Lock, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface OtakuLevelData {
-  /** 1-based level number. */
-  level: number;
-  /** Name of the current tier (e.g. "Connoisseur"). */
-  name: string;
-  /** Titles tracked so far. */
-  total: number;
-  /** Threshold reached for the current level. */
-  floor: number;
-  /** Next level's threshold, or null at max level. */
-  next: number | null;
-  /** 0–1 progress toward the next level. */
-  progress: number;
-}
+import { OTAKU_RANKS, type OtakuStanding } from "@/lib/otaku";
+import { OtakuBadge } from "./otaku-badge";
 
 /**
- * The Otaku Level showpiece — a glowing medallion with a progress ring, the
- * tier name, and an XP-style bar toward the next rank. Purely presentational:
- * it takes a computed {@link OtakuLevelData} so the leveling logic stays in one
- * place (the profile page) and this can be reused or reconnected freely.
+ * The Otaku rank ladder — the profile's rank showpiece.
+ *
+ * A big emblem for the current rank with an XP bar to the next, followed by the
+ * full ladder of every rank shown with its logo: ranks you've earned are lit,
+ * the current one is ringed, and locked ranks sit dim with their unlock count.
+ * A filled connector shows how far up the ladder you are.
  */
-export function OtakuLevel({ data }: { data: OtakuLevelData }) {
+export function OtakuLadder({ standing }: { standing: OtakuStanding }) {
   const reduce = useReducedMotion();
-  const { level, name, total, next, progress } = data;
-  const maxed = next == null;
+  const { rank, level, total, next, nextRank, progress, remaining, maxed } = standing;
 
-  // ring geometry
-  const box = 116;
-  const stroke = 8;
-  const r = (box - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = maxed ? 1 : progress;
+  // Ladder connector fill: complete segments for cleared ranks, partial for the
+  // current one's progress toward the next.
+  const seg = OTAKU_RANKS.length - 1;
+  const fill = maxed ? 1 : (rank.index + progress) / seg;
 
   return (
-    <section className="glass glass-sheen relative overflow-hidden rounded-4xl p-6 sm:p-7">
-      {/* ambient aurora */}
-      <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-iris-500/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-waku-500/15 blur-3xl" />
+    <section
+      className="relative overflow-hidden rounded-4xl p-6 sm:p-7"
+      style={{
+        background: `radial-gradient(120% 140% at 12% 0%, ${rank.to}22 0%, transparent 55%), rgba(13,19,40,0.55)`,
+        boxShadow: `inset 0 0 0 1px ${rank.to}33`,
+      }}
+    >
+      {/* current rank header */}
+      <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
+        <OtakuBadge rank={rank} size="xl" glow />
 
-      <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:gap-7">
-        {/* medallion */}
-        <div className="relative shrink-0" style={{ width: box, height: box }}>
-          <svg width={box} height={box} className="absolute inset-0 -rotate-90" aria-hidden>
-            <circle cx={box / 2} cy={box / 2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} />
-            <motion.circle
-              cx={box / 2}
-              cy={box / 2}
-              r={r}
-              fill="none"
-              stroke="url(#otaku-grad)"
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={c}
-              initial={{ strokeDashoffset: reduce ? c * (1 - pct) : c }}
-              animate={{ strokeDashoffset: c * (1 - pct) }}
-              transition={{ duration: reduce ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] }}
-            />
-            <defs>
-              <linearGradient id="otaku-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#9a83ff" />
-                <stop offset="100%" stopColor="#6ea8ff" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">Level</span>
-            <span className="font-display text-4xl font-bold leading-none text-white [text-shadow:0_2px_12px_rgba(110,168,255,0.5)]">
-              {level}
-            </span>
-          </div>
-        </div>
-
-        {/* text + bar */}
         <div className="min-w-0 flex-1 text-center sm:text-left">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-iris-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-iris-300 ring-1 ring-inset ring-iris-400/30">
-            <Sparkles className="h-3 w-3" /> Otaku Rank
-          </span>
-          <h2 className="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">{name}</h2>
-          <p className="mt-1 text-sm text-white/50">
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.22em]"
+            style={{ color: rank.from }}
+          >
+            Otaku Rank · Level {level}
+          </p>
+          <h2 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            {rank.name}
+          </h2>
+          <p className="mt-1 text-sm text-white/55">
             {maxed ? (
               <>You&rsquo;ve reached the summit — {total.toLocaleString()} titles tracked.</>
             ) : (
               <>
-                <span className="font-semibold tabular-nums text-white/80">{(next - total).toLocaleString()}</span>{" "}
-                more {next - total === 1 ? "title" : "titles"} to Level {level + 1}
+                <span className="font-bold tabular-nums text-white">{remaining.toLocaleString()}</span>{" "}
+                more {remaining === 1 ? "title" : "titles"} to{" "}
+                <span className="font-semibold" style={{ color: nextRank!.from }}>
+                  {nextRank!.name}
+                </span>
               </>
             )}
           </p>
 
+          {/* XP bar to next rank */}
           <div className="mt-4">
-            <div className="mb-1 flex items-center justify-between text-[11px] tabular-nums text-white/45">
+            <div className="mb-1 flex items-center justify-between text-[11px] font-medium tabular-nums text-white/45">
               <span>{total.toLocaleString()} tracked</span>
-              <span>{maxed ? "MAX" : next.toLocaleString()}</span>
+              <span>{maxed ? "MAX" : next!.toLocaleString()}</span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
               <motion.div
-                className={cn(
-                  "h-full rounded-full bg-gradient-to-r from-iris-400 to-waku-cinematic",
-                  "shadow-[0_0_12px_rgba(110,168,255,0.6)]",
-                )}
-                initial={{ width: reduce ? `${pct * 100}%` : 0 }}
-                animate={{ width: `${pct * 100}%` }}
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${rank.from}, ${nextRank?.from ?? rank.to})` }}
+                initial={{ width: reduce ? `${progress * 100}%` : 0 }}
+                animate={{ width: `${progress * 100}%` }}
                 transition={{ duration: reduce ? 0 : 1, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
           </div>
         </div>
+      </div>
+
+      {/* the full ladder */}
+      <div className="relative mt-8">
+        {/* connector track */}
+        <div className="absolute left-0 right-0 top-[22px] h-1 rounded-full bg-white/8" aria-hidden />
+        <motion.div
+          className="absolute left-0 top-[22px] h-1 rounded-full"
+          style={{ background: `linear-gradient(90deg, ${OTAKU_RANKS[0].from}, ${rank.from})` }}
+          initial={{ width: reduce ? `${fill * 100}%` : 0 }}
+          animate={{ width: `${fill * 100}%` }}
+          transition={{ duration: reduce ? 0 : 1.1, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+
+        <ol className="no-scrollbar relative flex justify-between gap-1 overflow-x-auto pb-1">
+          {OTAKU_RANKS.map((r) => {
+            const earned = r.index < rank.index || (r.index === rank.index);
+            const current = r.index === rank.index;
+            const cleared = r.index < rank.index;
+            return (
+              <li key={r.index} className="flex min-w-[52px] flex-1 flex-col items-center gap-1.5 text-center">
+                <span className="relative">
+                  <OtakuBadge rank={r} size="md" locked={!earned} glow={current} />
+                  {current && (
+                    <span
+                      className="pointer-events-none absolute -inset-1 rounded-2xl"
+                      style={{ boxShadow: `0 0 0 2px ${r.from}` }}
+                      aria-hidden
+                    />
+                  )}
+                  {/* status pip */}
+                  <span
+                    className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-abyss-900 ring-1 ring-white/15"
+                  >
+                    {cleared ? (
+                      <Check className="h-2.5 w-2.5 text-emerald-300" />
+                    ) : current ? (
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: r.from }} />
+                    ) : (
+                      <Lock className="h-2 w-2 text-white/35" />
+                    )}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "text-[10px] font-bold leading-tight",
+                    current ? "text-white" : earned ? "text-white/70" : "text-white/35",
+                  )}
+                >
+                  {r.name}
+                </span>
+                <span className="text-[9px] font-medium tabular-nums text-white/30">
+                  {r.threshold >= 1000 ? `${r.threshold / 1000}k` : r.threshold}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );
