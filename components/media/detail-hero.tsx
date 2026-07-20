@@ -10,16 +10,16 @@ import { GenreTag } from "./genre-tag";
 function pickRankings(rankings: MediaRanking[] | undefined): MediaRanking[] {
   if (!rankings?.length) return [];
   const score = (r: MediaRanking) => (r.allTime ? 0 : 1) + r.rank / 1000;
-  return [...rankings].sort((a, b) => score(a) - score(b)).slice(0, 3);
+  return [...rankings].sort((a, b) => score(a) - score(b)).slice(0, 2);
 }
 
 /**
- * Detail-page hero — "immersive theater".
+ * Detail-page hero — compact "marquee".
  *
- * A tall, full-bleed backdrop carries the whole viewport; the poster floats out
- * of the top of a centered glass "marquee" card that holds the title, the
- * community level-meter, genres and community rankings. Everything is centered
- * and cinematic — a deliberate break from the old banner + side-poster layout.
+ * A modest cinematic backdrop, then a single glass card that overlaps its lower
+ * edge: the poster lifts out of the card's top-left corner while the title,
+ * community level-meter, genres and rankings sit to its right, left-aligned.
+ * Poster and text never overlap, and the whole header stays short.
  */
 export function DetailHero({ media }: { media: MediaDetail }) {
   const title = media.title.english || media.title.romaji || media.title.native || "";
@@ -52,8 +52,8 @@ export function DetailHero({ media }: { media: MediaDetail }) {
 
   return (
     <header className="relative isolate">
-      {/* full-bleed cinematic backdrop */}
-      <div className="absolute inset-x-0 top-0 -z-10 h-[68vh] min-h-[520px] overflow-hidden">
+      {/* modest cinematic backdrop */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-[38vh] min-h-[280px] overflow-hidden sm:h-[42vh]">
         {banner ? (
           <Image
             src={banner}
@@ -67,7 +67,6 @@ export function DetailHero({ media }: { media: MediaDetail }) {
         ) : (
           <div className="h-full w-full" style={{ backgroundColor: accent }} />
         )}
-        {/* legibility: darken, fade to page, tint with the cover accent */}
         <div className="absolute inset-0 bg-gradient-to-b from-abyss-950/35 via-abyss-950/72 to-abyss-950" />
         <div
           className="absolute inset-0 opacity-40 mix-blend-soft-light"
@@ -75,91 +74,87 @@ export function DetailHero({ media }: { media: MediaDetail }) {
         />
       </div>
 
-      <div className="container relative pt-[24vh] sm:pt-[27vh]">
-        <div className="relative mx-auto max-w-2xl">
-          {/* poster floats out of the top edge of the marquee card */}
-          <div className="absolute left-1/2 top-0 z-10 w-32 -translate-x-1/2 -translate-y-[45%] sm:w-40">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-[0_30px_60px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/20">
-              {cover ? (
-                <Image
-                  src={cover}
-                  alt={title}
-                  fill
-                  priority
-                  sizes="(max-width: 640px) 128px, 160px"
-                  className="object-cover"
-                  style={{ backgroundColor: accent }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-abyss-700 text-white/20">
-                  <Film className="h-8 w-8" />
+      <div className="container relative pt-[19vh] sm:pt-[22vh]">
+        <div className="glass glass-sheen mx-auto max-w-3xl rounded-3xl p-4 sm:p-5">
+          <div className="flex items-start gap-4 sm:gap-5">
+            {/* poster lifts out of the top-left corner — clear of the text */}
+            <div className="-mt-12 w-24 shrink-0 sm:-mt-16 sm:w-32">
+              <div className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-[0_20px_44px_-18px_rgba(0,0,0,0.95)] ring-1 ring-white/20 sm:rounded-2xl">
+                {cover ? (
+                  <Image
+                    src={cover}
+                    alt={title}
+                    fill
+                    priority
+                    sizes="(max-width: 640px) 96px, 128px"
+                    className="object-cover"
+                    style={{ backgroundColor: accent }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-abyss-700 text-white/20">
+                    <Film className="h-7 w-7" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* info column */}
+            <div className="min-w-0 flex-1 pt-0.5">
+              {metaBits.length > 0 && (
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
+                  {metaBits.map((bit, i) => (
+                    <span key={bit} className="flex items-center gap-2 capitalize">
+                      {i > 0 && <span aria-hidden className="text-white/20">•</span>}
+                      {bit}
+                    </span>
+                  ))}
+                </p>
+              )}
+
+              <h1 className="mt-1 font-display text-2xl font-extrabold leading-[1.02] tracking-tight text-white [overflow-wrap:anywhere] sm:text-4xl">
+                {title}
+              </h1>
+              {media.title.native && media.title.native !== title && (
+                <p className="mt-1 text-xs text-white/40 [overflow-wrap:anywhere] sm:text-sm">{media.title.native}</p>
+              )}
+
+              {media.genres.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {media.genres.slice(0, 4).map((g) => (
+                    <GenreTag
+                      key={g}
+                      genre={g}
+                      size="sm"
+                      href={`/discover?type=${media.type}&genre=${encodeURIComponent(g)}`}
+                    />
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* the marquee card */}
-          <div className="glass glass-sheen rounded-4xl px-5 pb-6 pt-24 text-center sm:px-8 sm:pb-8 sm:pt-28">
-            {metaBits.length > 0 && (
-              <p className="mb-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
-                {metaBits.map((bit, i) => (
-                  <span key={bit} className="flex items-center gap-2 capitalize">
-                    {i > 0 && <span aria-hidden className="text-white/20">•</span>}
-                    {bit}
-                  </span>
-                ))}
-              </p>
-            )}
+          {/* community level-meter — full width under the row */}
+          {score != null && (
+            <div className="mt-4 rounded-2xl bg-abyss-950/40 px-3.5 py-3 ring-1 ring-inset ring-white/[0.07] sm:px-4">
+              <CommunityScore score={score} votes={media.popularity} size="md" align="left" />
+            </div>
+          )}
 
-            <h1 className="font-display text-3xl font-extrabold leading-[0.98] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere] sm:text-5xl">
-              {title}
-            </h1>
-            {media.title.native && media.title.native !== title && (
-              <p className="mt-2 text-sm text-white/45 [overflow-wrap:anywhere]">{media.title.native}</p>
-            )}
-
-            {media.genres.length > 0 && (
-              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {media.genres.slice(0, 5).map((g) => (
-                  <GenreTag
-                    key={g}
-                    genre={g}
-                    size="sm"
-                    href={`/discover?type=${media.type}&genre=${encodeURIComponent(g)}`}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* the community level-meter */}
-            {score != null && (
-              <div className="mx-auto mt-6 max-w-md rounded-3xl bg-abyss-950/40 px-4 py-4 ring-1 ring-inset ring-white/[0.07] sm:px-6">
-                <CommunityScore score={score} votes={media.popularity} size="lg" align="center" />
-              </div>
-            )}
-
-            {/* rank pills */}
-            {ranks.length > 0 && (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
-                {ranks.map((r) => (
-                  <RankPill key={`${r.type}-${r.context}`} ranking={r} />
-                ))}
-              </div>
-            )}
-
-            {/* quick stats */}
-            {hasStats && (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                {media.favourites != null && media.favourites > 0 && (
-                  <Stat icon={<Heart className="h-3.5 w-3.5 text-[#ff5b8f]" />}>{formatCount(media.favourites)}</Stat>
-                )}
-                {media.duration != null && media.type === "ANIME" && (
-                  <Stat icon={<Clock className="h-3.5 w-3.5 text-white/50" />}>{media.duration}m</Stat>
-                )}
-                {airing && <AiringCountdown airingAt={airing.airingAt} episode={airing.episode} />}
-              </div>
-            )}
-          </div>
+          {/* ranks + stats */}
+          {(ranks.length > 0 || hasStats) && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {ranks.map((r) => (
+                <RankPill key={`${r.type}-${r.context}`} ranking={r} />
+              ))}
+              {media.favourites != null && media.favourites > 0 && (
+                <Stat icon={<Heart className="h-3.5 w-3.5 text-[#ff5b8f]" />}>{formatCount(media.favourites)}</Stat>
+              )}
+              {media.duration != null && media.type === "ANIME" && (
+                <Stat icon={<Clock className="h-3.5 w-3.5 text-white/50" />}>{media.duration}m</Stat>
+              )}
+              {airing && <AiringCountdown airingAt={airing.airingAt} episode={airing.episode} />}
+            </div>
+          )}
         </div>
       </div>
     </header>

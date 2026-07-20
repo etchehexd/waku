@@ -18,7 +18,6 @@ import {
   Rows3,
   LayoutGrid,
   List,
-  Play,
 } from "lucide-react";
 import {
   useEntriesList,
@@ -36,7 +35,6 @@ import {
   matchesType,
   compareEntries,
   entryTotal,
-  isActive,
   type LibraryFilters,
   type TypeFilter,
 } from "@/lib/library-filters";
@@ -47,7 +45,6 @@ import { ScoreBadge } from "@/components/media/score-badge";
 import { ProgressStepper } from "@/components/media/progress-stepper";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/library/entry-card";
-import { ContinueRail } from "@/components/library/continue-rail";
 import { SortMenu } from "@/components/library/sort-menu";
 import { FilterPopover } from "@/components/library/filter-popover";
 import { RefreshButton } from "@/components/library/refresh-button";
@@ -108,15 +105,6 @@ export default function LibraryPage() {
     return c;
   }, [inType]);
 
-  // Active titles for the "Jump back in" rail.
-  const activeEntries = useMemo(
-    () =>
-      inType
-        .filter(isActive)
-        .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)),
-    [inType],
-  );
-
   // Headline stats for the masthead strip.
   const summary = useMemo(() => {
     let animeUnits = 0;
@@ -164,7 +152,6 @@ export default function LibraryPage() {
 
   // Shelves view only makes sense unfiltered; a single-status view flattens to a grid.
   const showShelves = layout === "shelves" && !isFiltering;
-  const showContinue = !isFiltering && activeEntries.length > 0;
 
   return (
     <div className="container pb-24 pt-20 md:pt-24">
@@ -202,24 +189,8 @@ export default function LibraryPage() {
         <EmptyState />
       ) : (
         <>
-          {/* ── Jump back in ── */}
-          {showContinue && (
-            <section className="mb-7">
-              <div className="mb-2.5 flex items-center gap-2">
-                <Play className="h-4 w-4 text-waku-cinematic" fill="currentColor" />
-                <h2 className="font-display text-sm font-extrabold uppercase tracking-wider text-white/80">
-                  Jump back in
-                </h2>
-                <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white/50">
-                  {activeEntries.length}
-                </span>
-              </div>
-              <ContinueRail entries={activeEntries} />
-            </section>
-          )}
-
           {/* ── Type tabs ── */}
-          <div className="mb-3.5 flex flex-wrap items-center gap-1.5">
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
             {TYPE_TABS.map((t) => {
               const active = mediaType === t.value;
               return (
@@ -267,7 +238,7 @@ export default function LibraryPage() {
           </div>
 
           {/* ── Search + sort + filter ── */}
-          <div className="mb-5 flex flex-wrap items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[12rem] flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <input
