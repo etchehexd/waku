@@ -6,8 +6,8 @@ import { persist } from "zustand/middleware";
 /** How the library browser renders its entries. */
 export type LibraryView = "list" | "grid" | "groups";
 
-/** Top-level library layout: status shelves, or a dense poster-less list. */
-export type LibraryLayout = "shelves" | "compact";
+/** Top-level library layout: status shelves, a flat poster grid, or a dense list. */
+export type LibraryLayout = "shelves" | "grid" | "compact";
 
 /** Sort orders offered by the library toolbar. */
 export type LibrarySort =

@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Heart, Film, Clock, Trophy, Flame } from "lucide-react";
 import type { MediaDetail, MediaRanking } from "@/lib/anilist/types";
 import { toTenScale, formatCount } from "@/lib/utils";
-import { ScoreBadge } from "./score-badge";
+import { CommunityScore } from "./community-score";
 import { AiringCountdown } from "./airing-countdown";
 import { GenreTag } from "./genre-tag";
 
@@ -14,11 +14,12 @@ function pickRankings(rankings: MediaRanking[] | undefined): MediaRanking[] {
 }
 
 /**
- * Detail-page hero — big and cinematic.
+ * Detail-page hero — "immersive theater".
  *
- * A tall banner fills the top and the poster + oversized title sit over its
- * lower third, so artwork carries the page. `isolate` gives the header its own
- * stacking context so the page background never bleeds over it.
+ * A tall, full-bleed backdrop carries the whole viewport; the poster floats out
+ * of the top of a centered glass "marquee" card that holds the title, the
+ * community level-meter, genres and community rankings. Everything is centered
+ * and cinematic — a deliberate break from the old banner + side-poster layout.
  */
 export function DetailHero({ media }: { media: MediaDetail }) {
   const title = media.title.english || media.title.romaji || media.title.native || "";
@@ -44,10 +45,15 @@ export function DetailHero({ media }: { media: MediaDetail }) {
     unitCount,
   ].filter(Boolean) as string[];
 
+  const hasStats =
+    (media.favourites ?? 0) > 0 ||
+    (media.duration != null && media.type === "ANIME") ||
+    !!airing;
+
   return (
     <header className="relative isolate">
-      {/* big cinematic banner */}
-      <div className="absolute inset-x-0 top-0 -z-10 h-[56vh] min-h-[400px] overflow-hidden">
+      {/* full-bleed cinematic backdrop */}
+      <div className="absolute inset-x-0 top-0 -z-10 h-[68vh] min-h-[520px] overflow-hidden">
         {banner ? (
           <Image
             src={banner}
@@ -61,23 +67,26 @@ export function DetailHero({ media }: { media: MediaDetail }) {
         ) : (
           <div className="h-full w-full" style={{ backgroundColor: accent }} />
         )}
-        {/* legibility gradients: darken, fade to page at the bottom, vignette sides */}
-        <div className="absolute inset-0 bg-gradient-to-b from-abyss-950/45 via-abyss-950/70 to-abyss-950" />
-        <div className="absolute inset-0 bg-gradient-to-r from-abyss-950/70 via-transparent to-abyss-950/50" />
+        {/* legibility: darken, fade to page, tint with the cover accent */}
+        <div className="absolute inset-0 bg-gradient-to-b from-abyss-950/35 via-abyss-950/72 to-abyss-950" />
+        <div
+          className="absolute inset-0 opacity-40 mix-blend-soft-light"
+          style={{ background: `radial-gradient(120% 80% at 50% 0%, ${accent}, transparent 60%)` }}
+        />
       </div>
 
-      <div className="container relative pt-[30vh] sm:pt-[34vh]">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:gap-7">
-          {/* poster lifts over the banner */}
-          <div className="w-36 shrink-0 sm:w-48 md:w-52">
-            <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-[0_30px_60px_-24px_rgba(0,0,0,0.9)] ring-1 ring-white/15">
+      <div className="container relative pt-[24vh] sm:pt-[27vh]">
+        <div className="relative mx-auto max-w-2xl">
+          {/* poster floats out of the top edge of the marquee card */}
+          <div className="absolute left-1/2 top-0 z-10 w-32 -translate-x-1/2 -translate-y-[45%] sm:w-40">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-2xl shadow-[0_30px_60px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/20">
               {cover ? (
                 <Image
                   src={cover}
                   alt={title}
                   fill
                   priority
-                  sizes="(max-width: 640px) 144px, 208px"
+                  sizes="(max-width: 640px) 128px, 160px"
                   className="object-cover"
                   style={{ backgroundColor: accent }}
                 />
@@ -89,38 +98,28 @@ export function DetailHero({ media }: { media: MediaDetail }) {
             </div>
           </div>
 
-          {/* info */}
-          <div className="min-w-0 flex-1 pb-1">
-            {/* grade + rankings */}
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              {score != null && <ScoreBadge score={score} size="lg" />}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {ranks.map((r) => (
-                  <RankPill key={`${r.type}-${r.context}`} ranking={r} />
-                ))}
-              </div>
-            </div>
-
-            <h1 className="font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)] [overflow-wrap:anywhere] sm:text-6xl md:text-7xl">
-              {title}
-            </h1>
-            {media.title.native && media.title.native !== title && (
-              <p className="mt-2 text-sm text-white/55 [overflow-wrap:anywhere]">{media.title.native}</p>
-            )}
-
+          {/* the marquee card */}
+          <div className="glass glass-sheen rounded-4xl px-5 pb-6 pt-24 text-center sm:px-8 sm:pb-8 sm:pt-28">
             {metaBits.length > 0 && (
-              <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium capitalize text-white/65">
+              <p className="mb-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white/45">
                 {metaBits.map((bit, i) => (
-                  <span key={bit} className="flex items-center gap-2.5">
-                    {i > 0 && <span aria-hidden className="text-white/30">·</span>}
+                  <span key={bit} className="flex items-center gap-2 capitalize">
+                    {i > 0 && <span aria-hidden className="text-white/20">•</span>}
                     {bit}
                   </span>
                 ))}
               </p>
             )}
 
+            <h1 className="font-display text-3xl font-extrabold leading-[0.98] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] [overflow-wrap:anywhere] sm:text-5xl">
+              {title}
+            </h1>
+            {media.title.native && media.title.native !== title && (
+              <p className="mt-2 text-sm text-white/45 [overflow-wrap:anywhere]">{media.title.native}</p>
+            )}
+
             {media.genres.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
                 {media.genres.slice(0, 5).map((g) => (
                   <GenreTag
                     key={g}
@@ -132,10 +131,25 @@ export function DetailHero({ media }: { media: MediaDetail }) {
               </div>
             )}
 
-            {(((media.favourites ?? 0) > 0) ||
-              (media.duration != null && media.type === "ANIME") ||
-              airing) && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+            {/* the community level-meter */}
+            {score != null && (
+              <div className="mx-auto mt-6 max-w-md rounded-3xl bg-abyss-950/40 px-4 py-4 ring-1 ring-inset ring-white/[0.07] sm:px-6">
+                <CommunityScore score={score} votes={media.popularity} size="lg" align="center" />
+              </div>
+            )}
+
+            {/* rank pills */}
+            {ranks.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                {ranks.map((r) => (
+                  <RankPill key={`${r.type}-${r.context}`} ranking={r} />
+                ))}
+              </div>
+            )}
+
+            {/* quick stats */}
+            {hasStats && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                 {media.favourites != null && media.favourites > 0 && (
                   <Stat icon={<Heart className="h-3.5 w-3.5 text-[#ff5b8f]" />}>{formatCount(media.favourites)}</Stat>
                 )}
@@ -173,7 +187,7 @@ function RankPill({ ranking }: { ranking: MediaRanking }) {
 
 function Stat({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-inset ring-white/12 backdrop-blur-md">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-inset ring-white/12 backdrop-blur-md">
       {icon}
       <span className="tabular-nums">{children}</span>
     </span>

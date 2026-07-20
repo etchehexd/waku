@@ -15,8 +15,10 @@ import {
   Film,
   Percent,
   ChevronRight,
+  Rows3,
   LayoutGrid,
   List,
+  Play,
 } from "lucide-react";
 import {
   useEntriesList,
@@ -26,7 +28,7 @@ import {
   type LibraryEntry,
   type WatchStatus,
 } from "@/lib/store";
-import { useLibraryPrefs } from "@/lib/library-prefs";
+import { useLibraryPrefs, type LibraryLayout } from "@/lib/library-prefs";
 import {
   applyLibrary,
   defaultFilters,
@@ -34,6 +36,7 @@ import {
   matchesType,
   compareEntries,
   entryTotal,
+  isActive,
   type LibraryFilters,
   type TypeFilter,
 } from "@/lib/library-filters";
@@ -44,6 +47,7 @@ import { ScoreBadge } from "@/components/media/score-badge";
 import { ProgressStepper } from "@/components/media/progress-stepper";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/library/entry-card";
+import { ContinueRail } from "@/components/library/continue-rail";
 import { SortMenu } from "@/components/library/sort-menu";
 import { FilterPopover } from "@/components/library/filter-popover";
 import { RefreshButton } from "@/components/library/refresh-button";
@@ -96,6 +100,23 @@ export default function LibraryPage() {
     [entries, mediaType],
   );
 
+  // Count per status within the active type — drives the quick-filter chips.
+  const statusCounts = useMemo(() => {
+    const c = {} as Record<WatchStatus, number>;
+    for (const s of STATUS_ORDER) c[s] = 0;
+    for (const e of inType) c[e.status]++;
+    return c;
+  }, [inType]);
+
+  // Active titles for the "Jump back in" rail.
+  const activeEntries = useMemo(
+    () =>
+      inType
+        .filter(isActive)
+        .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)),
+    [inType],
+  );
+
   // Headline stats for the masthead strip.
   const summary = useMemo(() => {
     let animeUnits = 0;
@@ -127,7 +148,7 @@ export default function LibraryPage() {
     return map;
   }, [inType, sort]);
 
-  // Flat, filtered result set (used whenever the user is searching/filtering).
+  // Flat, filtered result set (used for grid/compact and whenever filtering).
   const results = useMemo(
     () => applyLibrary(entries, { search, statusTab, filters, sort }),
     [entries, search, statusTab, filters, sort],
@@ -141,16 +162,20 @@ export default function LibraryPage() {
     setFilters({ ...defaultFilters(), type: mediaType });
   };
 
+  // Shelves view only makes sense unfiltered; a single-status view flattens to a grid.
+  const showShelves = layout === "shelves" && !isFiltering;
+  const showContinue = !isFiltering && activeEntries.length > 0;
+
   return (
-    <div className="container pb-20 pt-20 md:pt-24">
-      {/* Masthead with stat strip */}
-      <header className="mb-7">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="container pb-24 pt-20 md:pt-24">
+      {/* ── Masthead ── */}
+      <header className="mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-waku-cinematic">
               Your collection
             </p>
-            <h1 className="mt-1.5 font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
               Library
             </h1>
           </div>
@@ -162,12 +187,13 @@ export default function LibraryPage() {
           )}
         </div>
 
+        {/* dense stat strip */}
         {entries.length > 0 && (
-          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <StatTile icon={<Film className="h-4 w-4" />} label="Tracked" value={summary.total} accent="#8fb4ff" />
-            <StatTile icon={<Clock className="h-4 w-4" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
-            <StatTile icon={<Star className="h-4 w-4" />} label="Avg score" value={formatScore(summary.avg || null)} accent="#2fb765" />
-            <StatTile icon={<Percent className="h-4 w-4" />} label="Completed" value={`${summary.rate}%`} accent="#3fc4f7" />
+          <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
+            <StatPill icon={<Film className="h-4 w-4" />} label="Tracked" value={summary.total} accent="#8fb4ff" />
+            <StatPill icon={<Clock className="h-4 w-4" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
+            <StatPill icon={<Star className="h-4 w-4" />} label="Avg score" value={formatScore(summary.avg || null)} accent="#2fb765" />
+            <StatPill icon={<Percent className="h-4 w-4" />} label="Completed" value={`${summary.rate}%`} accent="#3fc4f7" />
           </div>
         )}
       </header>
@@ -176,8 +202,24 @@ export default function LibraryPage() {
         <EmptyState />
       ) : (
         <>
-          {/* Type tabs */}
-          <div className="no-scrollbar -mx-1 mb-4 flex gap-6 overflow-x-auto px-1">
+          {/* ── Jump back in ── */}
+          {showContinue && (
+            <section className="mb-7">
+              <div className="mb-2.5 flex items-center gap-2">
+                <Play className="h-4 w-4 text-waku-cinematic" fill="currentColor" />
+                <h2 className="font-display text-sm font-extrabold uppercase tracking-wider text-white/80">
+                  Jump back in
+                </h2>
+                <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white/50">
+                  {activeEntries.length}
+                </span>
+              </div>
+              <ContinueRail entries={activeEntries} />
+            </section>
+          )}
+
+          {/* ── Type tabs ── */}
+          <div className="mb-3.5 flex flex-wrap items-center gap-1.5">
             {TYPE_TABS.map((t) => {
               const active = mediaType === t.value;
               return (
@@ -185,22 +227,47 @@ export default function LibraryPage() {
                   key={t.value}
                   onClick={() => setMediaType(t.value)}
                   className={cn(
-                    "relative shrink-0 pb-2.5 text-sm font-bold outline-none transition-colors focus-visible:text-white",
-                    active ? "text-white" : "text-white/40 hover:text-white/70",
+                    "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-waku-400",
+                    active
+                      ? "bg-white text-abyss-950 ring-transparent"
+                      : "bg-white/[0.04] text-white/55 ring-white/10 hover:bg-white/[0.08] hover:text-white",
                   )}
                 >
                   {t.label}
-                  <span className="ml-1.5 text-xs font-semibold tabular-nums text-white/35">
+                  <span className={cn("text-xs font-semibold tabular-nums", active ? "text-abyss-950/50" : "text-white/35")}>
                     {typeCounts[t.value]}
                   </span>
-                  {active && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-waku-cinematic" />}
                 </button>
               );
             })}
           </div>
 
-          {/* Search + sort + filter */}
-          <div className="mb-6 flex flex-wrap items-center gap-2">
+          {/* ── Status quick-filters ── */}
+          <div className="no-scrollbar -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            <StatusPill active={statusTab === "ALL"} onClick={() => setStatusTab("ALL")}>
+              All
+            </StatusPill>
+            {STATUS_ORDER.filter((s) => statusCounts[s] > 0).map((s) => {
+              const meta = STATUS_META[s];
+              const Icon = meta.icon;
+              const active = statusTab === s;
+              return (
+                <StatusPill
+                  key={s}
+                  active={active}
+                  color={meta.color}
+                  onClick={() => setStatusTab(active ? "ALL" : s)}
+                >
+                  <Icon className="h-3.5 w-3.5" style={{ color: active ? undefined : meta.color }} />
+                  {STATUS_LABEL[s]}
+                  <span className="text-[11px] font-bold tabular-nums opacity-60">{statusCounts[s]}</span>
+                </StatusPill>
+              );
+            })}
+          </div>
+
+          {/* ── Search + sort + filter ── */}
+          <div className="mb-5 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[12rem] flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
               <input
@@ -224,7 +291,7 @@ export default function LibraryPage() {
             <FilterPopover filters={filters} setFilters={setFilters} />
           </div>
 
-          {/* Active filter chips (shown whenever filtering). */}
+          {/* ── Active filter chips ── */}
           {isFiltering && (
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
               {statusTab !== "ALL" && (
@@ -248,10 +315,12 @@ export default function LibraryPage() {
             </div>
           )}
 
-          {/* Compact = dense poster-less list. Shelves = rails, or a grid while filtering. */}
-          {layout === "compact" ? (
+          {/* ── Body ── */}
+          {inType.length === 0 ? (
+            <TypeEmptyState type={mediaType} />
+          ) : layout === "compact" ? (
             results.length === 0 ? (
-              inType.length === 0 ? <TypeEmptyState type={mediaType} /> : <NoResults onClear={clearAll} />
+              <NoResults onClear={clearAll} />
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -262,27 +331,23 @@ export default function LibraryPage() {
                 <ResultCount n={results.length} />
               </>
             )
-          ) : isFiltering ? (
-            results.length === 0 ? (
-              <NoResults onClear={clearAll} />
-            ) : (
-              <>
-                <div className={GRID_CLS}>
-                  {results.map((e) => (
-                    <EntryCard key={e.media.id} entry={e} />
-                  ))}
-                </div>
-                <ResultCount n={results.length} />
-              </>
-            )
-          ) : inType.length === 0 ? (
-            <TypeEmptyState type={mediaType} />
-          ) : (
+          ) : showShelves ? (
             <div className="space-y-9">
               {STATUS_ORDER.filter((s) => shelves[s].length > 0).map((s) => (
                 <Shelf key={s} status={s} entries={shelves[s]} onViewAll={() => setStatusTab(s)} />
               ))}
             </div>
+          ) : results.length === 0 ? (
+            <NoResults onClear={clearAll} />
+          ) : (
+            <>
+              <div className={GRID_CLS}>
+                {results.map((e) => (
+                  <EntryCard key={e.media.id} entry={e} />
+                ))}
+              </div>
+              <ResultCount n={results.length} />
+            </>
           )}
         </>
       )}
@@ -361,16 +426,17 @@ function Shelf({
   );
 }
 
-/** Shelves ↔ compact list switch. */
+/** Shelves ↔ grid ↔ compact switch. */
 function LayoutToggle({
   layout,
   setLayout,
 }: {
-  layout: "shelves" | "compact";
-  setLayout: (l: "shelves" | "compact") => void;
+  layout: LibraryLayout;
+  setLayout: (l: LibraryLayout) => void;
 }) {
   const opts = [
-    { value: "shelves" as const, icon: LayoutGrid, label: "Shelves" },
+    { value: "shelves" as const, icon: Rows3, label: "Status shelves" },
+    { value: "grid" as const, icon: LayoutGrid, label: "Poster grid" },
     { value: "compact" as const, icon: List, label: "Compact list" },
   ];
   return (
@@ -443,7 +509,7 @@ function ResultCount({ n }: { n: number }) {
   );
 }
 
-function StatTile({
+function StatPill({
   icon,
   label,
   value,
@@ -456,17 +522,54 @@ function StatTile({
 }) {
   return (
     <div
-      className="rounded-2xl p-3.5 ring-1 ring-inset"
+      className="flex shrink-0 items-center gap-2.5 rounded-2xl px-3.5 py-2.5 ring-1 ring-inset"
       style={{ background: `${accent}12`, boxShadow: `inset 0 0 0 1px ${accent}2e` }}
     >
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/50">
-        <span style={{ color: accent }}>{icon}</span>
-        {label}
+      <span
+        className="flex h-8 w-8 items-center justify-center rounded-xl"
+        style={{ background: `${accent}1f`, color: accent }}
+      >
+        {icon}
       </span>
-      <span className="mt-1 block font-display text-2xl font-extrabold tabular-nums leading-none text-white">
-        {value}
+      <span>
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-white/45">{label}</span>
+        <span className="block font-display text-lg font-extrabold tabular-nums leading-tight text-white">
+          {value}
+        </span>
       </span>
     </div>
+  );
+}
+
+function StatusPill({
+  active,
+  color,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  color?: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold outline-none ring-1 ring-inset transition-colors focus-visible:ring-2 focus-visible:ring-waku-400",
+        !active && "bg-white/[0.03] text-white/60 ring-white/10 hover:bg-white/[0.07] hover:text-white",
+      )}
+      style={
+        active
+          ? color
+            ? { background: `${color}26`, color, boxShadow: `inset 0 0 0 1.5px ${color}` }
+            : { background: "rgba(255,255,255,0.16)", color: "#fff", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,0.3)" }
+          : undefined
+      }
+    >
+      {children}
+    </button>
   );
 }
 
@@ -544,9 +647,9 @@ function PageShell() {
   return (
     <div className="container pt-20 md:pt-24">
       <div className="skeleton h-12 w-52 rounded-2xl" />
-      <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="mt-5 flex gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="skeleton h-[68px] rounded-2xl" />
+          <div key={i} className="skeleton h-[60px] w-40 rounded-2xl" />
         ))}
       </div>
       <div className="mt-8 space-y-8">

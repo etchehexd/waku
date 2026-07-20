@@ -4,7 +4,7 @@ import { Users, Sparkles, Network } from "lucide-react";
 import { getMediaDetail } from "@/lib/anilist/client";
 import { stripHtml } from "@/lib/utils";
 import { DetailHero } from "@/components/media/detail-hero";
-import { MediaActions } from "@/components/media/media-actions";
+import { ActionDock } from "@/components/media/action-dock";
 import { Synopsis } from "@/components/media/synopsis";
 import { CharacterCard } from "@/components/media/character-card";
 import { MediaCard } from "@/components/media/media-card";
@@ -69,97 +69,95 @@ export default async function MediaPage({ params }: Params) {
   ];
 
   return (
-    <article className="overflow-x-clip pb-20">
+    <article className="overflow-x-clip pb-36">
       <DetailHero media={media} />
 
-      <div className="container mt-8 md:mt-10">
-        <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-10">
-          {/* sticky tracking + facts rail — stays put while content scrolls */}
-          <aside className="mb-8 lg:mb-0 lg:sticky lg:top-24 lg:self-start">
-            <MediaActions media={media} />
-            <div className="mt-5">
-              <SpecList facts={facts} />
-            </div>
-          </aside>
+      <div className="container mt-10">
+        {/* single centered reading column */}
+        <div className="mx-auto max-w-3xl space-y-12">
+          {/* inline fact strip */}
+          <FactStrip facts={facts} />
 
-          {/* main column */}
-          <div className="min-w-0">
+          <section>
             <SectionHeading>Synopsis</SectionHeading>
             {description ? (
               <Synopsis text={description} />
             ) : (
               <p className="text-sm italic text-white/35">No synopsis has been written for this title yet.</p>
             )}
+          </section>
 
-            {characters.length > 0 && (
-              <section className="mt-10">
-                <SectionHeading icon={<Users className="h-4 w-4" />} count={characters.length}>
-                  Characters
-                </SectionHeading>
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {characters.map((edge) => (
-                    <CharacterCard
-                      key={`${edge.node.id}-${edge.role}`}
-                      name={edge.node.name.full}
-                      image={edge.node.image.large}
-                      role={edge.role}
-                      actorName={edge.voiceActors?.[0]?.name.full}
-                      actorImage={edge.voiceActors?.[0]?.image.large}
-                    />
-                  ))}
+          {characters.length > 0 && (
+            <section>
+              <SectionHeading icon={<Users className="h-4 w-4" />} count={characters.length}>
+                Characters
+              </SectionHeading>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {characters.map((edge) => (
+                  <CharacterCard
+                    key={`${edge.node.id}-${edge.role}`}
+                    name={edge.node.name.full}
+                    image={edge.node.image.large}
+                    role={edge.role}
+                    actorName={edge.voiceActors?.[0]?.name.full}
+                    actorImage={edge.voiceActors?.[0]?.image.large}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {relations.length > 0 && (
+            <MediaScroller title="Related stories" icon={<Network className="h-4 w-4" />}>
+              {relations.map((edge) => (
+                <div key={`${edge.node.id}-${edge.relationType}`} className="w-[124px] shrink-0">
+                  <span className="mb-1.5 block truncate text-[11px] font-medium uppercase tracking-wide text-white/40">
+                    {edge.relationType.replace(/_/g, " ").toLowerCase()}
+                  </span>
+                  <MediaCard media={edge.node} className="!w-full" />
                 </div>
-              </section>
-            )}
+              ))}
+            </MediaScroller>
+          )}
 
-            {relations.length > 0 && (
-              <MediaScroller title="Related stories" icon={<Network className="h-4 w-4" />}>
-                {relations.map((edge) => (
-                  <div key={`${edge.node.id}-${edge.relationType}`} className="w-[124px] shrink-0">
-                    <span className="mb-1.5 block truncate text-[11px] font-medium uppercase tracking-wide text-white/40">
-                      {edge.relationType.replace(/_/g, " ").toLowerCase()}
-                    </span>
-                    <MediaCard media={edge.node} className="!w-full" />
-                  </div>
-                ))}
-              </MediaScroller>
-            )}
-
-            {recs.length > 0 && (
-              <MediaScroller title="You might also like" icon={<Sparkles className="h-4 w-4" />}>
-                {recs.map((m) => (
-                  <MediaCard key={m.id} media={m} className="!w-[124px]" />
-                ))}
-              </MediaScroller>
-            )}
-          </div>
+          {recs.length > 0 && (
+            <MediaScroller title="You might also like" icon={<Sparkles className="h-4 w-4" />}>
+              {recs.map((m) => (
+                <MediaCard key={m.id} media={m} className="!w-[124px]" />
+              ))}
+            </MediaScroller>
+          )}
         </div>
       </div>
+
+      {/* bottom tracking dock — follows the reader down the page */}
+      <ActionDock media={media} />
     </article>
   );
 }
 
-/** Compact, hairline-ruled details list for the sidebar. */
-function SpecList({ facts }: { facts: Fact[] }) {
+/** Horizontal strip of key facts — compact, glassy cells that wrap. */
+function FactStrip({ facts }: { facts: Fact[] }) {
   const shown = facts.filter((f) => f.value != null && f.value !== "");
   if (shown.length === 0) return null;
   return (
-    <dl className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-      <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">Details</p>
-      <div className="divide-y divide-white/[0.07]">
-        {shown.map((f) => (
-          <div key={f.label} className="flex items-baseline justify-between gap-4 py-2">
-            <dt className="shrink-0 text-[12px] text-white/45">{f.label}</dt>
-            <dd className="min-w-0 text-right text-[12px] font-semibold capitalize text-white/90 [overflow-wrap:anywhere]">
-              {f.value}
-            </dd>
-          </div>
-        ))}
-      </div>
-    </dl>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {shown.map((f) => (
+        <div
+          key={f.label}
+          className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-3.5 py-2.5"
+        >
+          <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{f.label}</dt>
+          <dd className="mt-0.5 truncate text-sm font-semibold capitalize text-white/90" title={String(f.value)}>
+            {f.value}
+          </dd>
+        </div>
+      ))}
+    </div>
   );
 }
 
-/** Left-aligned section heading — accent tick + bold label. */
+/** Section heading — eyebrow accent bar + bold label + hairline rule. */
 function SectionHeading({
   icon,
   count,
