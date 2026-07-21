@@ -6,8 +6,8 @@ import { persist } from "zustand/middleware";
 /** How the library browser renders its entries. */
 export type LibraryView = "list" | "grid" | "groups";
 
-/** Top-level library layout: status shelves, a flat poster grid, or a dense list. */
-export type LibraryLayout = "shelves" | "grid" | "compact";
+/** Top-level library layout: an AniList-style detail list, or a poster grid. */
+export type LibraryLayout = "list" | "grid";
 
 /** Sort orders offered by the library toolbar. */
 export type LibrarySort =
@@ -68,7 +68,7 @@ export const useLibraryPrefs = create<LibraryPrefsState>()(
   persist(
     (set) => ({
       view: "list",
-      layout: "shelves",
+      layout: "list",
       sort: "updated",
       summaryOpen: true,
       continueOpen: true,

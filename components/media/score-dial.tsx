@@ -2,12 +2,11 @@
 
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 import { formatScore, cn } from "@/lib/utils";
-import { scoreTierIcon } from "./score-tier-icon";
 
 /**
  * The score graphic — a 270° radial gauge that fills to the value in the tier
- * color, with the number, tier word and an expressive tier icon stacked in the
- * middle. Everything (arc length, color, icon) transitions as the value changes,
+ * color, with the number and tier word stacked in the middle. Everything (arc
+ * length, color) transitions as the value changes,
  * so dragging the slider reads as a live verdict rather than a static readout.
  */
 export function ScoreDial({
@@ -21,7 +20,6 @@ export function ScoreDial({
 }) {
   const tier = tierForScore(value);
   const color = isPerfect(value) ? GOLD : tier.color;
-  const Icon = scoreTierIcon(value);
 
   const stroke = 13;
   const r = (size - stroke) / 2;
@@ -66,13 +64,7 @@ export function ScoreDial({
 
       {/* center readout */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-          style={{ background: `${color}22`, color }}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <span className="mt-1.5 flex items-baseline gap-0.5 font-black leading-none tabular-nums transition-colors" style={{ color: tier.text }}>
+        <span className="flex items-baseline gap-0.5 font-black leading-none tabular-nums transition-colors" style={{ color: tier.text }}>
           <span className="text-5xl">{formatScore(value)}</span>
           <span className="text-lg text-white/30">/10</span>
         </span>

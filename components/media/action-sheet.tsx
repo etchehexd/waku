@@ -9,7 +9,7 @@ import {
   RotateCcw,
   Undo2,
   Trash2,
-  Sparkles,
+  Star,
   Check,
   ChevronRight,
   Lock,
@@ -18,7 +18,6 @@ import type { MediaSummary } from "@/lib/anilist/types";
 import { useWaku, isRateable, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
 import { ProgressStepper } from "./progress-stepper";
-import { ScoreSlider } from "./score-slider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn, formatScore } from "@/lib/utils";
 
@@ -55,19 +54,12 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   const setStatus = useWaku((s) => s.setStatus);
   const setProgress = useWaku((s) => s.setProgress);
   const requestRate = useWaku((s) => s.requestRate);
-  const rateById = useWaku((s) => s.rateById);
   const toggleFavorite = useWaku((s) => s.toggleFavorite);
   const incrementRewatch = useWaku((s) => s.incrementRewatch);
   const decrementRewatch = useWaku((s) => s.decrementRewatch);
   const removeEntry = useWaku((s) => s.removeEntry);
 
   const [confirmRemove, setConfirmRemove] = useState(false);
-  // Local draft for the decimal rating slider; committed to the store on release.
-  const [rateDraft, setRateDraft] = useState(entry?.score ?? 7.5);
-  useEffect(() => {
-    if (open) setRateDraft(entry?.score ?? 7.5);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, media.id]);
 
   const inList = !!entry;
   const title = media.title.english || media.title.romaji || media.title.native || "";
@@ -242,27 +234,35 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                       </div>
                     </div>
 
-                    {/* rating — only once finished */}
+                    {/* rating — only once finished. The score is set in the
+                        dedicated immersive rating menu, not inline here, so this
+                        sheet stays focused on tracking. */}
                     <div>
-                      <Label hint={canRate && entry.score != null ? `${formatScore(entry.score)} / 10` : undefined}>
-                        Your rating
-                      </Label>
+                      <Label>Your rating</Label>
                       {canRate ? (
-                        <>
-                          <ScoreSlider
-                            value={rateDraft}
-                            onChange={setRateDraft}
-                            onCommit={(v) => rateById(media.id, v)}
+                        <button
+                          type="button"
+                          onClick={() => requestRate(media.id)}
+                          className="flex w-full items-center gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5 text-left outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.1] focus-visible:ring-2 focus-visible:ring-waku-400"
+                        >
+                          <Star
+                            className={cn(
+                              "h-5 w-5 shrink-0",
+                              entry.score != null ? "fill-current text-waku-cinematic" : "text-white/50",
+                            )}
                           />
-                          <button
-                            type="button"
-                            onClick={() => requestRate(media.id)}
-                            className="mt-2.5 flex w-full items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-2 text-left outline-none ring-1 ring-inset ring-white/8 transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-waku-400"
-                          >
-                            <Sparkles className="h-4 w-4 shrink-0 text-waku-cinematic" />
-                            <span className="flex-1 text-sm font-semibold text-white">Smart Rate — place it by comparison</span>
-                          </button>
-                        </>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-white">
+                              {entry.score != null ? "Re-rate" : "Rate this title"}
+                            </span>
+                            {entry.score != null && (
+                              <span className="block text-[11px] text-white/45">
+                                Your score · <span className="font-bold tabular-nums text-white/70">{formatScore(entry.score)}</span> / 10
+                              </span>
+                            )}
+                          </span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-white/30" />
+                        </button>
                       ) : (
                         <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-inset ring-white/8">
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/45">

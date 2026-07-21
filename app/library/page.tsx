@@ -13,48 +13,38 @@ import {
   Clock,
   Star,
   Percent,
-  ChevronRight,
-  Rows3,
-  LayoutGrid,
   List,
+  LayoutGrid,
 } from "lucide-react";
 import {
   useEntriesList,
-  useWaku,
   STATUS_LABEL,
   STATUS_ORDER,
   type LibraryEntry,
   type WatchStatus,
 } from "@/lib/store";
-import { useLibraryPrefs, type LibraryLayout } from "@/lib/library-prefs";
+import { useLibraryPrefs } from "@/lib/library-prefs";
 import {
   applyLibrary,
   defaultFilters,
   activeFilterCount,
   matchesType,
   compareEntries,
-  entryTotal,
   type LibraryFilters,
   type TypeFilter,
 } from "@/lib/library-filters";
 import { useMounted } from "@/lib/use-mounted";
 import { cn, formatScore } from "@/lib/utils";
 import { STATUS_META } from "@/components/media/status-meta";
-import { ScoreBadge } from "@/components/media/score-badge";
-import { ProgressStepper } from "@/components/media/progress-stepper";
 import { Button } from "@/components/ui/button";
 import { EntryCard } from "@/components/library/entry-card";
+import { ListRow, LibraryList } from "@/components/library/list-row";
 import { SortMenu } from "@/components/library/sort-menu";
 import { FilterPopover } from "@/components/library/filter-popover";
 import { RefreshButton } from "@/components/library/refresh-button";
 
-// Dense grid — small posters + name below, so more titles fit per screen. The
-// extra gap-y leaves room for the two-line title under each poster.
 const GRID_CLS =
-  "grid grid-cols-3 gap-x-2.5 gap-y-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10";
-
-/** How many posters to show per shelf before "View all". */
-const SHELF_CAP = 20;
+  "grid grid-cols-3 gap-x-2.5 gap-y-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9";
 
 const TYPE_TABS: { value: TypeFilter; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -69,8 +59,10 @@ export default function LibraryPage() {
 
   const sort = useLibraryPrefs((s) => s.sort);
   const setSort = useLibraryPrefs((s) => s.setSort);
-  const layout = useLibraryPrefs((s) => s.layout);
+  const layoutPref = useLibraryPrefs((s) => s.layout);
   const setLayout = useLibraryPrefs((s) => s.setLayout);
+  // Coerce any legacy stored value (shelves/compact) to the list view.
+  const layout: "list" | "grid" = layoutPref === "grid" ? "grid" : "list";
 
   const [statusTab, setStatusTab] = useState<WatchStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
@@ -98,7 +90,6 @@ export default function LibraryPage() {
     [entries, mediaType],
   );
 
-  // Count per status within the active type — drives the quick-filter chips.
   const statusCounts = useMemo(() => {
     const c = {} as Record<WatchStatus, number>;
     for (const s of STATUS_ORDER) c[s] = 0;
@@ -106,7 +97,6 @@ export default function LibraryPage() {
     return c;
   }, [inType]);
 
-  // Headline stats for the masthead strip.
   const summary = useMemo(() => {
     let animeUnits = 0;
     let ratedSum = 0;
@@ -128,16 +118,16 @@ export default function LibraryPage() {
     };
   }, [inType]);
 
-  // Shelves: entries grouped by status, each sorted by the active sort.
-  const shelves = useMemo(() => {
-    const map: Record<string, LibraryEntry[]> = {};
+  // Status-grouped, each sorted by the active sort (used when not filtering).
+  const grouped = useMemo(() => {
+    const map = {} as Record<WatchStatus, LibraryEntry[]>;
     for (const s of STATUS_ORDER) map[s] = [];
-    for (const e of inType) (map[e.status] ??= []).push(e);
+    for (const e of inType) map[e.status].push(e);
     for (const s of STATUS_ORDER) map[s].sort((a, b) => compareEntries(a, b, sort));
     return map;
   }, [inType, sort]);
 
-  // Flat, filtered result set (used for grid/compact and whenever filtering).
+  // Flat filtered set (used while searching / filtering).
   const results = useMemo(
     () => applyLibrary(entries, { search, statusTab, filters, sort }),
     [entries, search, statusTab, filters, sort],
@@ -151,34 +141,35 @@ export default function LibraryPage() {
     setFilters({ ...defaultFilters(), type: mediaType });
   };
 
-  // Shelves view only makes sense unfiltered; a single-status view flattens to a grid.
-  const showShelves = layout === "shelves" && !isFiltering;
+  const render = (list: LibraryEntry[]) =>
+    layout === "list" ? (
+      <LibraryList>
+        {list.map((e) => (
+          <ListRow key={e.media.id} entry={e} />
+        ))}
+      </LibraryList>
+    ) : (
+      <div className={GRID_CLS}>
+        {list.map((e) => (
+          <EntryCard key={e.media.id} entry={e} />
+        ))}
+      </div>
+    );
 
   return (
     <div className="container pb-24 pt-16 md:pt-20">
-      {/* ── Masthead — compact: title + inline stat chips ── */}
-      <header className="mb-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="flex items-baseline gap-2.5 font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
-            Library
-            {entries.length > 0 && (
-              <span className="text-sm font-bold tabular-nums text-white/35">{summary.total}</span>
-            )}
-          </h1>
+      {/* ── Header ── */}
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <h1 className="flex items-baseline gap-2.5 font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+          Library
           {entries.length > 0 && (
-            <div className="flex items-center gap-2">
-              <RefreshButton entries={entries} />
-              <LayoutToggle layout={layout} setLayout={setLayout} />
-            </div>
+            <span className="text-sm font-bold tabular-nums text-white/35">{summary.total}</span>
           )}
-        </div>
-
-        {/* slim inline stat chips */}
+        </h1>
         {entries.length > 0 && (
-          <div className="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-            <StatPill icon={<Clock className="h-3.5 w-3.5" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
-            <StatPill icon={<Star className="h-3.5 w-3.5" />} label="Avg" value={formatScore(summary.avg || null)} accent="#2fb765" />
-            <StatPill icon={<Percent className="h-3.5 w-3.5" />} label="Done" value={`${summary.rate}%`} accent="#3fc4f7" />
+          <div className="flex items-center gap-2">
+            <RefreshButton entries={entries} />
+            <ViewToggle layout={layout} setLayout={setLayout} />
           </div>
         )}
       </header>
@@ -187,7 +178,14 @@ export default function LibraryPage() {
         <EmptyState />
       ) : (
         <>
-          {/* ── Type tabs ── */}
+          {/* stat strip */}
+          <div className="no-scrollbar mb-4 flex gap-1.5 overflow-x-auto pb-0.5">
+            <StatPill icon={<Clock className="h-3.5 w-3.5" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
+            <StatPill icon={<Star className="h-3.5 w-3.5" />} label="Avg" value={formatScore(summary.avg || null)} accent="#2fb765" />
+            <StatPill icon={<Percent className="h-3.5 w-3.5" />} label="Done" value={`${summary.rate}%`} accent="#3fc4f7" />
+          </div>
+
+          {/* type tabs */}
           <div className="mb-3 flex flex-wrap items-center gap-1.5">
             {TYPE_TABS.map((t) => {
               const active = mediaType === t.value;
@@ -211,7 +209,7 @@ export default function LibraryPage() {
             })}
           </div>
 
-          {/* ── Status quick-filters ── */}
+          {/* status quick-filters (double as jump-to-status) */}
           <div className="no-scrollbar -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">
             <StatusPill active={statusTab === "ALL"} onClick={() => setStatusTab("ALL")}>
               All
@@ -221,12 +219,7 @@ export default function LibraryPage() {
               const Icon = meta.icon;
               const active = statusTab === s;
               return (
-                <StatusPill
-                  key={s}
-                  active={active}
-                  color={meta.color}
-                  onClick={() => setStatusTab(active ? "ALL" : s)}
-                >
+                <StatusPill key={s} active={active} color={meta.color} onClick={() => setStatusTab(active ? "ALL" : s)}>
                   <Icon className="h-3.5 w-3.5" style={{ color: active ? undefined : meta.color }} />
                   {STATUS_LABEL[s]}
                   <span className="text-[11px] font-bold tabular-nums opacity-60">{statusCounts[s]}</span>
@@ -235,7 +228,7 @@ export default function LibraryPage() {
             })}
           </div>
 
-          {/* ── Search + sort + filter ── */}
+          {/* search + sort + filter */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[12rem] flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
@@ -260,12 +253,10 @@ export default function LibraryPage() {
             <FilterPopover filters={filters} setFilters={setFilters} />
           </div>
 
-          {/* ── Active filter chips ── */}
+          {/* active filter chips */}
           {isFiltering && (
             <div className="mb-4 flex flex-wrap items-center gap-1.5">
-              {statusTab !== "ALL" && (
-                <Chip label={STATUS_LABEL[statusTab]} onRemove={() => setStatusTab("ALL")} />
-              )}
+              {statusTab !== "ALL" && <Chip label={STATUS_LABEL[statusTab]} onRemove={() => setStatusTab("ALL")} />}
               {trimmedSearch !== "" && <Chip label={`"${trimmedSearch}"`} onRemove={() => setSearch("")} />}
               {filters.rated !== "all" && (
                 <Chip label={filters.rated === "rated" ? "Rated" : "Unrated"} onRemove={() => setFilters((f) => ({ ...f, rated: "all" }))} />
@@ -287,36 +278,24 @@ export default function LibraryPage() {
           {/* ── Body ── */}
           {inType.length === 0 ? (
             <TypeEmptyState type={mediaType} />
-          ) : layout === "compact" ? (
+          ) : isFiltering ? (
             results.length === 0 ? (
               <NoResults onClear={clearAll} />
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {results.map((e) => (
-                    <CompactRow key={e.media.id} entry={e} />
-                  ))}
-                </div>
+                {render(results)}
                 <ResultCount n={results.length} />
               </>
             )
-          ) : showShelves ? (
+          ) : (
             <div className="space-y-6">
-              {STATUS_ORDER.filter((s) => shelves[s].length > 0).map((s) => (
-                <Shelf key={s} status={s} entries={shelves[s]} onViewAll={() => setStatusTab(s)} />
+              {STATUS_ORDER.filter((s) => grouped[s].length > 0).map((s) => (
+                <section key={s}>
+                  <SectionHeader status={s} count={grouped[s].length} onlyStatus={() => setStatusTab(s)} />
+                  {render(grouped[s])}
+                </section>
               ))}
             </div>
-          ) : results.length === 0 ? (
-            <NoResults onClear={clearAll} />
-          ) : (
-            <>
-              <div className={GRID_CLS}>
-                {results.map((e) => (
-                  <EntryCard key={e.media.id} entry={e} />
-                ))}
-              </div>
-              <ResultCount n={results.length} />
-            </>
           )}
         </>
       )}
@@ -324,88 +303,44 @@ export default function LibraryPage() {
   );
 }
 
-/** One status shelf: a labeled, status-tinted header + a horizontal poster rail. */
-function Shelf({
+/** Status section header — icon chip + name + count + hairline rule. Click to isolate. */
+function SectionHeader({
   status,
-  entries,
-  onViewAll,
+  count,
+  onlyStatus,
 }: {
   status: WatchStatus;
-  entries: LibraryEntry[];
-  onViewAll: () => void;
+  count: number;
+  onlyStatus: () => void;
 }) {
   const meta = STATUS_META[status];
   const Icon = meta.icon;
-  const shown = entries.slice(0, SHELF_CAP);
-  const overflow = entries.length > SHELF_CAP;
-
   return (
-    <section>
-      <div className="mb-3 flex items-center gap-2.5">
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-xl"
-          style={{ background: meta.soft, color: meta.color, boxShadow: `inset 0 0 0 1px ${meta.color}55` }}
-        >
-          <Icon className="h-[18px] w-[18px]" />
-        </span>
-        <h2 className="font-display text-lg font-extrabold tracking-tight text-white">
-          {STATUS_LABEL[status]}
-        </h2>
-        <span
-          className="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-          style={{ background: meta.soft, color: meta.color }}
-        >
-          {entries.length}
-        </span>
-        <span
-          aria-hidden
-          className="h-px flex-1"
-          style={{ background: `linear-gradient(to right, ${meta.color}55, transparent)` }}
-        />
-        {overflow && (
-          <button
-            onClick={onViewAll}
-            className="flex shrink-0 items-center gap-0.5 rounded-full text-xs font-semibold text-white/55 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400"
-          >
-            View all <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-
-      <div className="rail -mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2">
-        {shown.map((e) => (
-          <div key={e.media.id} className="w-[88px] shrink-0 snap-start sm:w-[100px]">
-            <EntryCard entry={e} />
-          </div>
-        ))}
-        {overflow && (
-          <button
-            onClick={onViewAll}
-            className="flex aspect-[2/3] w-[88px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.03] text-white/60 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400 sm:w-[100px]"
-          >
-            <ChevronRight className="h-5 w-5" />
-            <span className="text-xs font-semibold">
-              +{entries.length - SHELF_CAP} more
-            </span>
-          </button>
-        )}
-      </div>
-    </section>
+    <button
+      onClick={onlyStatus}
+      className="mb-2 flex w-full items-center gap-2.5 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-waku-400"
+      aria-label={`Show only ${STATUS_LABEL[status]}`}
+    >
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-lg"
+        style={{ background: meta.soft, color: meta.color, boxShadow: `inset 0 0 0 1px ${meta.color}55` }}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <h2 className="font-display text-base font-extrabold tracking-tight text-white">{STATUS_LABEL[status]}</h2>
+      <span className="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums" style={{ background: meta.soft, color: meta.color }}>
+        {count}
+      </span>
+      <span aria-hidden className="h-px flex-1" style={{ background: `linear-gradient(to right, ${meta.color}44, transparent)` }} />
+    </button>
   );
 }
 
-/** Shelves ↔ grid ↔ compact switch. */
-function LayoutToggle({
-  layout,
-  setLayout,
-}: {
-  layout: LibraryLayout;
-  setLayout: (l: LibraryLayout) => void;
-}) {
+/** List ↔ grid switch. */
+function ViewToggle({ layout, setLayout }: { layout: "list" | "grid"; setLayout: (l: "list" | "grid") => void }) {
   const opts = [
-    { value: "shelves" as const, icon: Rows3, label: "Status shelves" },
-    { value: "grid" as const, icon: LayoutGrid, label: "Poster grid" },
-    { value: "compact" as const, icon: List, label: "Compact list" },
+    { value: "list" as const, icon: List, label: "List view" },
+    { value: "grid" as const, icon: LayoutGrid, label: "Grid view" },
   ];
   return (
     <div className="flex items-center gap-1 rounded-full bg-white/5 p-1 ring-1 ring-inset ring-white/10">
@@ -427,44 +362,6 @@ function LayoutToggle({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-/** Dense, poster-less box: name + status + score, with an inline progress stepper. */
-function CompactRow({ entry }: { entry: LibraryEntry }) {
-  const { media } = entry;
-  const meta = STATUS_META[entry.status];
-  const total = entryTotal(entry);
-  const setProgress = useWaku((s) => s.setProgress);
-
-  return (
-    <div className="group flex items-center gap-2.5 rounded-xl bg-white/[0.025] p-2.5 ring-1 ring-inset ring-white/[0.07] transition-colors hover:bg-white/[0.05]">
-      <span className="h-9 w-1 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
-      <Link
-        href={`/media/${media.id}`}
-        className="min-w-0 flex-1 rounded outline-none focus-visible:ring-2 focus-visible:ring-waku-400"
-      >
-        <span className="block truncate text-[13px] font-bold leading-tight text-white transition-colors group-hover:text-waku-cinematic">
-          {media.title}
-        </span>
-        <span className="mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold">
-          <span style={{ color: meta.color }}>{STATUS_LABEL[entry.status]}</span>
-          {entry.score != null && (
-            <>
-              <span className="text-white/25">·</span>
-              <ScoreBadge score={entry.score} size="sm" plate={false} />
-            </>
-          )}
-        </span>
-      </Link>
-      <ProgressStepper
-        value={entry.progress}
-        total={total}
-        onChange={(n) => setProgress(media.id, n)}
-        size="sm"
-        label={media.title}
-      />
     </div>
   );
 }
@@ -604,23 +501,16 @@ function EmptyState() {
 
 function PageShell() {
   return (
-    <div className="container pt-20 md:pt-24">
-      <div className="skeleton h-12 w-52 rounded-2xl" />
-      <div className="mt-5 flex gap-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="skeleton h-[60px] w-40 rounded-2xl" />
+    <div className="container pt-16 md:pt-20">
+      <div className="skeleton h-9 w-40 rounded-2xl" />
+      <div className="mt-4 flex gap-1.5">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="skeleton h-8 w-24 rounded-full" />
         ))}
       </div>
-      <div className="mt-8 space-y-8">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i}>
-            <div className="skeleton h-6 w-40 rounded-full" />
-            <div className="mt-3 flex gap-3">
-              {Array.from({ length: 7 }).map((_, j) => (
-                <div key={j} className="skeleton aspect-[2/3] w-[104px] shrink-0 rounded-xl sm:w-[120px]" />
-              ))}
-            </div>
-          </div>
+      <div className="mt-6 space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="skeleton h-14 w-full rounded-xl" />
         ))}
       </div>
     </div>
