@@ -12,9 +12,10 @@ import {
   Sparkles,
   Check,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 import type { MediaSummary } from "@/lib/anilist/types";
-import { useWaku, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
+import { useWaku, isRateable, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
 import { ProgressStepper } from "./progress-stepper";
 import { ScoreSlider } from "./score-slider";
@@ -80,7 +81,7 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   }, [open, pendingRate, onClose]);
 
   const activeStatus = entry?.status ?? "CURRENT";
-  const canRate = activeStatus === "COMPLETED" || activeStatus === "REWATCHING";
+  const canRate = isRateable(entry); // @see isRateable
   const meta = STATUS_META[activeStatus];
   const progress = entry?.progress ?? 0;
   const pct = total ? Math.min(100, (progress / total) * 100) : progress > 0 ? 100 : 0;
@@ -263,9 +264,14 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
                           </button>
                         </>
                       ) : (
-                        <p className="rounded-xl bg-white/[0.03] px-3 py-2.5 text-xs text-white/45 ring-1 ring-inset ring-white/8">
-                          Finish it first — ratings unlock once a title is completed.
-                        </p>
+                        <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2.5 ring-1 ring-inset ring-white/8">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-white/45">
+                            <Lock className="h-3.5 w-3.5" />
+                          </span>
+                          <p className="text-xs text-white/50">
+                            <span className="font-semibold text-white/70">Finish it first.</span> Ratings unlock once you mark this title completed.
+                          </p>
+                        </div>
                       )}
                     </div>
 

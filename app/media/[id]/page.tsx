@@ -69,7 +69,7 @@ export default async function MediaPage({ params }: Params) {
   ];
 
   return (
-    <article className="overflow-x-clip pb-36">
+    <article className="overflow-x-clip pb-48 md:pb-36">
       <DetailHero media={media} />
 
       <div className="container mt-10">

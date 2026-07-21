@@ -50,7 +50,11 @@ export function ActionDock({ media }: { media: MediaSummary }) {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
+      {/* Sits above the mobile bottom tab bar (which is fixed at bottom on <md
+          and would otherwise cover this dock — the cause of the clipped "Add"
+          button on non-maximized laptop windows). On md+ there is no tab bar, so
+          the dock returns to the very bottom. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem_+_env(safe-area-inset-bottom))] z-40 pt-6 md:bottom-0 md:pb-4">
         {/* fade so page content dissolves under the dock */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-abyss-950 via-abyss-950/80 to-transparent" />
         <div className="container">

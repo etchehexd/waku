@@ -12,7 +12,6 @@ import {
   BookText,
   Clock,
   Star,
-  Film,
   Percent,
   ChevronRight,
   Rows3,
@@ -49,11 +48,13 @@ import { SortMenu } from "@/components/library/sort-menu";
 import { FilterPopover } from "@/components/library/filter-popover";
 import { RefreshButton } from "@/components/library/refresh-button";
 
+// Dense grid — small posters + name below, so more titles fit per screen. The
+// extra gap-y leaves room for the two-line title under each poster.
 const GRID_CLS =
-  "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8";
+  "grid grid-cols-3 gap-x-2.5 gap-y-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10";
 
 /** How many posters to show per shelf before "View all". */
-const SHELF_CAP = 18;
+const SHELF_CAP = 20;
 
 const TYPE_TABS: { value: TypeFilter; label: string }[] = [
   { value: "ALL", label: "All" },
@@ -154,18 +155,16 @@ export default function LibraryPage() {
   const showShelves = layout === "shelves" && !isFiltering;
 
   return (
-    <div className="container pb-24 pt-20 md:pt-24">
-      {/* ── Masthead ── */}
-      <header className="mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-waku-cinematic">
-              Your collection
-            </p>
-            <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-              Library
-            </h1>
-          </div>
+    <div className="container pb-24 pt-16 md:pt-20">
+      {/* ── Masthead — compact: title + inline stat chips ── */}
+      <header className="mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="flex items-baseline gap-2.5 font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            Library
+            {entries.length > 0 && (
+              <span className="text-sm font-bold tabular-nums text-white/35">{summary.total}</span>
+            )}
+          </h1>
           {entries.length > 0 && (
             <div className="flex items-center gap-2">
               <RefreshButton entries={entries} />
@@ -174,13 +173,12 @@ export default function LibraryPage() {
           )}
         </div>
 
-        {/* dense stat strip */}
+        {/* slim inline stat chips */}
         {entries.length > 0 && (
-          <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
-            <StatPill icon={<Film className="h-4 w-4" />} label="Tracked" value={summary.total} accent="#8fb4ff" />
-            <StatPill icon={<Clock className="h-4 w-4" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
-            <StatPill icon={<Star className="h-4 w-4" />} label="Avg score" value={formatScore(summary.avg || null)} accent="#2fb765" />
-            <StatPill icon={<Percent className="h-4 w-4" />} label="Completed" value={`${summary.rate}%`} accent="#3fc4f7" />
+          <div className="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
+            <StatPill icon={<Clock className="h-3.5 w-3.5" />} label="Hours" value={summary.hours.toLocaleString()} accent="#9a83ff" />
+            <StatPill icon={<Star className="h-3.5 w-3.5" />} label="Avg" value={formatScore(summary.avg || null)} accent="#2fb765" />
+            <StatPill icon={<Percent className="h-3.5 w-3.5" />} label="Done" value={`${summary.rate}%`} accent="#3fc4f7" />
           </div>
         )}
       </header>
@@ -303,7 +301,7 @@ export default function LibraryPage() {
               </>
             )
           ) : showShelves ? (
-            <div className="space-y-9">
+            <div className="space-y-6">
               {STATUS_ORDER.filter((s) => shelves[s].length > 0).map((s) => (
                 <Shelf key={s} status={s} entries={shelves[s]} onViewAll={() => setStatusTab(s)} />
               ))}
@@ -374,17 +372,16 @@ function Shelf({
         )}
       </div>
 
-      <div className="rail -mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
+      <div className="rail -mx-1 flex gap-2.5 overflow-x-auto px-1 pb-2">
         {shown.map((e) => (
-          <div key={e.media.id} className="w-[104px] shrink-0 snap-start sm:w-[120px]">
+          <div key={e.media.id} className="w-[88px] shrink-0 snap-start sm:w-[100px]">
             <EntryCard entry={e} />
           </div>
         ))}
         {overflow && (
           <button
             onClick={onViewAll}
-            className="flex w-[104px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.03] text-white/60 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400 sm:w-[120px]"
-            style={{ aspectRatio: "2 / 3" }}
+            className="flex aspect-[2/3] w-[88px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl bg-white/[0.03] text-white/60 outline-none ring-1 ring-inset ring-white/10 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-waku-400 sm:w-[100px]"
           >
             <ChevronRight className="h-5 w-5" />
             <span className="text-xs font-semibold">
@@ -493,21 +490,12 @@ function StatPill({
 }) {
   return (
     <div
-      className="flex shrink-0 items-center gap-2.5 rounded-2xl px-3.5 py-2.5 ring-1 ring-inset"
+      className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 ring-1 ring-inset"
       style={{ background: `${accent}12`, boxShadow: `inset 0 0 0 1px ${accent}2e` }}
     >
-      <span
-        className="flex h-8 w-8 items-center justify-center rounded-xl"
-        style={{ background: `${accent}1f`, color: accent }}
-      >
-        {icon}
-      </span>
-      <span>
-        <span className="block text-[10px] font-semibold uppercase tracking-wide text-white/45">{label}</span>
-        <span className="block font-display text-lg font-extrabold tabular-nums leading-tight text-white">
-          {value}
-        </span>
-      </span>
+      <span style={{ color: accent }}>{icon}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">{label}</span>
+      <span className="font-display text-sm font-extrabold tabular-nums leading-none text-white">{value}</span>
     </div>
   );
 }

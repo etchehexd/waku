@@ -5,8 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, Undo2, SkipForward, ArrowLeft, Trophy, Swords, ImageOff } from "lucide-react";
-import { useWaku, useEntriesList, type LibraryEntry } from "@/lib/store";
+import { Sparkles, Undo2, SkipForward, ArrowLeft, Trophy, Swords, ImageOff, Lock } from "lucide-react";
+import { useWaku, useEntriesList, isRateable, type LibraryEntry } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import {
   buildReferencePool,
@@ -15,9 +15,8 @@ import {
   SMART_MIN_REFERENCES,
   type Reference,
 } from "@/lib/smart-rating";
-import { ScoreBadge } from "@/components/media/score-badge";
+import { ScoreDial } from "@/components/media/score-dial";
 import { Button } from "@/components/ui/button";
-import { tierForScore } from "@/lib/rating";
 import { cn } from "@/lib/utils";
 
 /**
@@ -128,6 +127,9 @@ export function SmartRateClient() {
 
   if (!mounted) return <Shell />;
   if (focusId == null || target == null) return <NoTarget />;
+  // Gate: Smart Rating still writes a score, so it obeys the same completion
+  // rule as every other rating path. @see isRateable
+  if (!isRateable(target)) return <RateLocked target={target} />;
   if (pool.length < SMART_MIN_REFERENCES) {
     return <Onboarding have={pool.length} />;
   }
@@ -355,14 +357,8 @@ function Completion({
         <h1 className="mt-1 font-display text-xl font-bold text-white">{target.media.title}</h1>
         {score != null ? (
           <>
-            <div className="mx-auto my-5 flex flex-col items-center gap-1.5">
-              <ScoreBadge score={score} size="xl" plate={false} />
-              <p
-                className="font-display text-lg font-extrabold uppercase tracking-wide"
-                style={{ color: tierForScore(score).text }}
-              >
-                {tierForScore(score).label}
-              </p>
+            <div className="mx-auto my-5 flex justify-center">
+              <ScoreDial value={score} size={190} />
             </div>
             <p className="text-sm text-white/55">
               Smart Rated from {rounds} comparison{rounds === 1 ? "" : "s"}. You can refine it any
@@ -383,6 +379,36 @@ function Completion({
               <Undo2 className="h-4 w-4" /> Undo last comparison
             </Button>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Shown when someone deep-links Smart Rating for a title they haven't finished. */
+function RateLocked({ target }: { target: LibraryEntry }) {
+  return (
+    <div className="container flex min-h-[70svh] max-w-md flex-col items-center justify-center pt-20 text-center md:pt-24">
+      <div className="glass glass-sheen w-full rounded-4xl p-8">
+        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.06] text-white/50">
+          <Lock className="h-6 w-6" />
+        </span>
+        <h1 className="font-display text-xl font-bold text-white">Finish it first</h1>
+        <p className="mt-2 text-sm text-white/55">
+          You can only rate <span className="font-semibold text-white">{target.media.title}</span> once
+          you&apos;ve marked it completed. Track your progress, finish the show, then Smart Rate it.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link href={`/media/${target.media.id}`}>
+            <Button variant="accent" size="lg" className="w-full">
+              Open details
+            </Button>
+          </Link>
+          <Link href="/library">
+            <Button variant="ghost" size="md" className="w-full">
+              Back to library
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

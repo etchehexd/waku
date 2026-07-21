@@ -5,12 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Sparkles } from "lucide-react";
-import { useWaku } from "@/lib/store";
+import { useWaku, isRateable } from "@/lib/store";
 import { useAuthGate } from "@/lib/use-auth-gate";
-import { tierForScore } from "@/lib/rating";
 import { SMART_MIN_REFERENCES } from "@/lib/smart-rating";
 import { Button } from "@/components/ui/button";
 import { ScoreSlider } from "./score-slider";
+import { ScoreDial } from "./score-dial";
 import { formatScore } from "@/lib/utils";
 
 /**
@@ -63,11 +63,10 @@ export function RatingPrompt() {
     return () => window.removeEventListener("keydown", onKey);
   }, [pendingRate, clearPendingRate]);
 
-  // Guard: only finished titles can be rated.
-  const canRate = !!entry && (entry.status === "COMPLETED" || entry.status === "REWATCHING");
+  // Guard: only finished titles can be rated. @see isRateable
+  const canRate = isRateable(entry);
   const open = pendingRate != null && canRate && !gated;
   const smartUnlocked = referenceCount >= SMART_MIN_REFERENCES;
-  const tier = tierForScore(draft);
 
   const save = () => {
     if (pendingRate != null) rateById(pendingRate, draft);
@@ -120,56 +119,44 @@ export function RatingPrompt() {
               </button>
             </div>
 
-            <div className="px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
-              {/* big number verdict */}
+            <div className="px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5">
+              {/* live tier graphic */}
               <div className="flex flex-col items-center" aria-live="polite">
-                <span className="flex items-baseline gap-1 font-black leading-none" style={{ color: tier.text }}>
-                  <span className="text-7xl tabular-nums">{formatScore(draft)}</span>
-                  <span className="text-2xl text-white/35">/10</span>
-                </span>
-                <p className="mt-2 font-display text-lg font-extrabold uppercase tracking-wide" style={{ color: tier.color }}>
-                  {tier.label}
-                </p>
+                <ScoreDial value={draft} />
                 {previous != null && previous !== draft && (
-                  <p className="mt-1 text-xs text-white/45">
+                  <p className="mt-2 text-xs text-white/45">
                     Previously <span className="font-bold text-white/75">{formatScore(previous)}</span>
                   </p>
                 )}
               </div>
 
-              {/* 0–10 decimal selector */}
-              <div className="mt-6">
+              {/* the slider */}
+              <div className="mt-5">
                 <ScoreSlider value={draft} onChange={setDraft} />
               </div>
 
-              {/* actions */}
-              <div className="mt-6 w-full space-y-2">
-                {smartUnlocked ? (
-                  <>
-                    <Link href={`/rate?focus=${pendingRate}`} onClick={clearPendingRate} className="block">
-                      <Button variant="accent" size="lg" className="w-full glow-accent">
-                        <Sparkles className="h-4 w-4" /> Smart Rate — place it by comparison
+              {/* one clear primary action */}
+              <div className="mt-6 space-y-2.5">
+                <Button variant="accent" size="lg" className="w-full glow-accent" onClick={save}>
+                  Save {formatScore(draft)} / 10
+                </Button>
+                <div className="flex items-center gap-2">
+                  {smartUnlocked && (
+                    <Link href={`/rate?focus=${pendingRate}`} onClick={clearPendingRate} className="flex-1">
+                      <Button variant="glass" size="md" className="w-full">
+                        <Sparkles className="h-4 w-4" /> Smart Rate
                       </Button>
                     </Link>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="md" className="flex-1" onClick={clearPendingRate}>
-                        Not now
-                      </Button>
-                      <Button variant="glass" size="md" className="flex-1" onClick={save}>
-                        Save {formatScore(draft)}
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="accent" size="lg" className="w-full glow-accent" onClick={save}>
-                      Save {formatScore(draft)} / 10
-                    </Button>
-                    <Button variant="ghost" size="md" className="w-full" onClick={clearPendingRate}>
-                      Not now
-                    </Button>
-                  </>
-                )}
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    className={smartUnlocked ? "flex-1" : "w-full"}
+                    onClick={clearPendingRate}
+                  >
+                    Not now
+                  </Button>
+                </div>
               </div>
             </div>
           </motion.div>

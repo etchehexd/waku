@@ -148,6 +148,22 @@ export function completedProgress(info: CompletionInfo, current: number): number
   return Math.max(current, total);
 }
 
+/**
+ * RATING GATE — the single source of truth for "can this title be rated?".
+ *
+ * A title may only be rated once the user has **finished** it: status must be
+ * COMPLETED, or REWATCHING (which can only be reached after a prior completion).
+ * Every rating path — the rating modal, Smart Rating, the add/track sheet, the
+ * library row menu — funnels through this function, and the store's `rate` /
+ * `rateById` / `requestRate` actions call it as a hard guard so there is NO code
+ * path (direct call, keyboard shortcut, deep link, future refactor) that can
+ * persist a score for an unfinished title. If you add a new rating entry point,
+ * gate it here too. Do not inline the status check anywhere — always use this.
+ */
+export function isRateable(entry: Pick<LibraryEntry, "status"> | undefined | null): boolean {
+  return !!entry && (entry.status === "COMPLETED" || entry.status === "REWATCHING");
+}
+
 export interface LibraryEntry {
   media: MediaSnapshot;
   status: WatchStatus;
@@ -306,8 +322,8 @@ export const useWaku = create<WakuState>()(
       // what you haven't completed. Completing (or wrapping a rewatch) is the
       // only thing that opens the rating menu.
       requestRate: (mediaId) => {
-        const e = get().entries[mediaId];
-        if (!e || (e.status !== "COMPLETED" && e.status !== "REWATCHING")) return;
+        // Gate: only finished titles open the rating modal. @see isRateable
+        if (!isRateable(get().entries[mediaId])) return;
         set({ pendingRate: mediaId });
       },
       clearPendingRate: () => set({ pendingRate: null }),
@@ -411,6 +427,12 @@ export const useWaku = create<WakuState>()(
         }),
 
       rate: (media, score, smart = false) => {
+        // Hard gate: never persist a score for an unfinished title. @see isRateable
+        if (!isRateable(get().entries[media.id])) {
+          if (process.env.NODE_ENV !== "production")
+            console.warn(`[waku] Blocked rate() for ${media.id}: title is not completed.`);
+          return;
+        }
         get().upsertEntry(media, { score, smart });
         if (!smart) {
           // manual score becomes / updates an anchor
@@ -423,6 +445,13 @@ export const useWaku = create<WakuState>()(
       },
 
       rateById: (mediaId, score, smart = false) => {
+        // Hard gate: never persist a score for an unfinished title. This is the
+        // last line of defense behind every rating UI. @see isRateable
+        if (!isRateable(get().entries[mediaId])) {
+          if (process.env.NODE_ENV !== "production")
+            console.warn(`[waku] Blocked rateById() for ${mediaId}: title is not completed.`);
+          return;
+        }
         set((s) => {
           const e = s.entries[mediaId];
           if (!e) return s;

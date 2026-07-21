@@ -16,17 +16,22 @@ function fmt(secs: number) {
 }
 
 /**
- * Live "next episode" indicator. Deliberately a compact chip rather than a
- * panel: it belongs in the hero's quiet stat strip, present at a glance
- * without competing with the title or the primary action.
+ * Live "next episode" indicator.
+ *
+ * Two forms: the default compact chip for quiet stat strips, and a `prominent`
+ * banner — bigger type, a pulsing live dot, an accent-tinted plate — for the
+ * detail hero, where "when's the next episode?" should be answerable at a
+ * glance without hunting.
  */
 export function AiringCountdown({
   airingAt,
   episode,
+  prominent = false,
   className,
 }: {
   airingAt: number;
   episode: number;
+  prominent?: boolean;
   className?: string;
 }) {
   // Start null so server and first client render agree, then tick on mount.
@@ -39,6 +44,36 @@ export function AiringCountdown({
     return () => clearInterval(t);
   }, [airingAt]);
 
+  const time = remaining == null ? "—" : fmt(remaining);
+
+  if (prominent) {
+    return (
+      <div
+        className={cn(
+          "inline-flex items-center gap-3 rounded-2xl bg-waku-500/15 px-4 py-2.5 ring-1 ring-inset ring-waku-300/40 backdrop-blur-md",
+          className,
+        )}
+        title={`Episode ${episode} airs ${new Date(airingAt * 1000).toLocaleString()}`}
+      >
+        {/* pulsing live dot */}
+        <span className="relative flex h-3 w-3 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-waku-cinematic opacity-70 motion-reduce:hidden" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-waku-cinematic" />
+        </span>
+        <div className="leading-tight">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-waku-cinematic">
+            Next episode
+          </span>
+          <span className="flex items-baseline gap-1.5 font-display text-base font-extrabold text-white">
+            EP {episode}
+            <span className="text-white/40">·</span>
+            <span className="tabular-nums">{time}</span>
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <span
       className={cn(
@@ -49,9 +84,7 @@ export function AiringCountdown({
     >
       <Radio className="h-3.5 w-3.5 shrink-0 text-waku-cinematic" />
       <span className="text-white/55">EP {episode}</span>
-      <span className="tabular-nums text-white">
-        {remaining == null ? "—" : fmt(remaining)}
-      </span>
+      <span className="tabular-nums text-white">{time}</span>
     </span>
   );
 }

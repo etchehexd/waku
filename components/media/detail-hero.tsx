@@ -46,9 +46,7 @@ export function DetailHero({ media }: { media: MediaDetail }) {
   ].filter(Boolean) as string[];
 
   const hasStats =
-    (media.favourites ?? 0) > 0 ||
-    (media.duration != null && media.type === "ANIME") ||
-    !!airing;
+    (media.favourites ?? 0) > 0 || (media.duration != null && media.type === "ANIME");
 
   return (
     <header className="relative isolate">
@@ -115,8 +113,15 @@ export function DetailHero({ media }: { media: MediaDetail }) {
                 {title}
               </h1>
 
+              {/* next-episode badge — prominent, right under the title */}
+              {airing && (
+                <div className="mt-3">
+                  <AiringCountdown airingAt={airing.airingAt} episode={airing.episode} prominent />
+                </div>
+              )}
+
               {media.genres.length > 0 && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {media.genres.slice(0, 4).map((g) => (
                     <GenreTag
                       key={g}
@@ -149,7 +154,6 @@ export function DetailHero({ media }: { media: MediaDetail }) {
               {media.duration != null && media.type === "ANIME" && (
                 <Stat icon={<Clock className="h-3.5 w-3.5 text-white/50" />}>{media.duration}m</Stat>
               )}
-              {airing && <AiringCountdown airingAt={airing.airingAt} episode={airing.episode} />}
             </div>
           )}
         </div>

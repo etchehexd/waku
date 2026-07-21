@@ -7,12 +7,13 @@ import {
   ExternalLink,
   Heart,
   Star,
+  Lock,
   CheckCircle2,
   RotateCcw,
   Undo2,
   Trash2,
 } from "lucide-react";
-import { useWaku, type LibraryEntry } from "@/lib/store";
+import { useWaku, isRateable, type LibraryEntry } from "@/lib/store";
 import { entryTotal } from "@/lib/library-filters";
 import { Popover, menuItemCls } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export function RowMenu({ entry }: { entry: LibraryEntry }) {
   const total = entryTotal(entry);
   const atTotal = total != null && entry.progress >= total;
   const canComplete = entry.status !== "COMPLETED" && entry.status !== "DROPPED";
-  const canRate = entry.status === "COMPLETED" || entry.status === "REWATCHING";
+  const canRate = isRateable(entry); // @see isRateable
   const close = () => setOpen(false);
 
   return (
@@ -81,7 +82,7 @@ export function RowMenu({ entry }: { entry: LibraryEntry }) {
           </button>
         )}
 
-        {canRate && (
+        {canRate ? (
           <button
             role="menuitem"
             onClick={() => {
@@ -93,6 +94,19 @@ export function RowMenu({ entry }: { entry: LibraryEntry }) {
             <Star className="h-4 w-4 shrink-0 text-white/50" />
             {entry.score != null ? "Edit rating" : "Rate title"}
           </button>
+        ) : (
+          // Locked, not hidden: make the completion requirement explicit.
+          <div
+            className={cn(menuItemCls(), "cursor-not-allowed opacity-45")}
+            aria-disabled="true"
+            title="Finish the show to rate it"
+          >
+            <Lock className="h-4 w-4 shrink-0 text-white/40" />
+            <span className="flex flex-col leading-tight">
+              Rate title
+              <span className="text-[10px] font-normal text-white/40">Finish it first</span>
+            </span>
+          </div>
         )}
 
         <button
