@@ -329,6 +329,28 @@
     animation: shimmer 2.2s infinite;
   }
 
+  /* 0–10 rating slider — a bold round thumb that reads on the tinted track. */
+  .score-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 22px;
+    width: 22px;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid rgba(9, 13, 28, 0.85);
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+  }
+  .score-range::-moz-range-thumb {
+    height: 22px;
+    width: 22px;
+    border-radius: 999px;
+    background: #fff;
+    border: 3px solid rgba(9, 13, 28, 0.85);
+    box-shadow: 0 2px 8px -1px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+  }
+
   /* Horizontal media rails — hide scrollbar, keep snap.
      `overflow-y: hidden` + `overscroll-behavior-x: contain` stops a rail from
      trapping vertical wheel/trackpad intent (which must scroll the page) or

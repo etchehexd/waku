@@ -10,16 +10,15 @@ import { useAuthGate } from "@/lib/use-auth-gate";
 import { tierForScore } from "@/lib/rating";
 import { SMART_MIN_REFERENCES } from "@/lib/smart-rating";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+import { ScoreSlider } from "./score-slider";
+import { formatScore } from "@/lib/utils";
 
 /**
- * The rating menu — a 1–10 whole-number scale (no decimals).
+ * The rating menu — a 0–10 scale with decimals.
  *
- * Opens only for finished titles (the store guards `pendingRate`). You pick a
- * whole number; Smart Rating comparisons still resolve exact ranking order, so
- * the number stays a gut verdict rather than false precision.
+ * Opens only for finished titles (the store guards `pendingRate`). Drag the
+ * slider (½-point steps) or tap a quick pick; Smart Rating comparisons still
+ * resolve exact ranking order for finer placement.
  */
 export function RatingPrompt() {
   const pendingRate = useWaku((s) => s.pendingRate);
@@ -29,17 +28,17 @@ export function RatingPrompt() {
   const { gated } = useAuthGate();
 
   const entry = pendingRate != null ? entries[pendingRate] : undefined;
-  const previous = entry?.score != null ? Math.round(entry.score) : null;
+  const previous = entry?.score ?? null;
 
   const referenceCount = Object.values(entries).filter(
     (e) => e.score != null && e.media.id !== pendingRate,
   ).length;
 
-  const [draft, setDraft] = useState(previous ?? 7);
+  const [draft, setDraft] = useState(previous ?? 7.5);
   const saveRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    if (pendingRate != null) setDraft(entry?.score != null ? Math.round(entry.score) : 7);
+    if (pendingRate != null) setDraft(entry?.score ?? 7.5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingRate]);
 
@@ -51,10 +50,10 @@ export function RatingPrompt() {
       if (e.key === "Escape") return clearPendingRate();
       if (e.key === "ArrowUp" || e.key === "ArrowRight") {
         e.preventDefault();
-        setDraft((d) => Math.min(10, d + 1));
+        setDraft((d) => Math.min(10, d + 0.5));
       } else if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
         e.preventDefault();
-        setDraft((d) => Math.max(1, d - 1));
+        setDraft((d) => Math.max(0, d - 0.5));
       } else if (e.key === "Enter") {
         e.preventDefault();
         saveRef.current();
@@ -125,7 +124,7 @@ export function RatingPrompt() {
               {/* big number verdict */}
               <div className="flex flex-col items-center" aria-live="polite">
                 <span className="flex items-baseline gap-1 font-black leading-none" style={{ color: tier.text }}>
-                  <span className="text-7xl tabular-nums">{draft}</span>
+                  <span className="text-7xl tabular-nums">{formatScore(draft)}</span>
                   <span className="text-2xl text-white/35">/10</span>
                 </span>
                 <p className="mt-2 font-display text-lg font-extrabold uppercase tracking-wide" style={{ color: tier.color }}>
@@ -133,35 +132,14 @@ export function RatingPrompt() {
                 </p>
                 {previous != null && previous !== draft && (
                   <p className="mt-1 text-xs text-white/45">
-                    Previously <span className="font-bold text-white/75">{previous}</span>
+                    Previously <span className="font-bold text-white/75">{formatScore(previous)}</span>
                   </p>
                 )}
               </div>
 
-              {/* 1–10 selector */}
-              <div className="mt-6 grid grid-cols-10 gap-1" role="radiogroup" aria-label="Score out of 10">
-                {SCORES.map((n) => {
-                  const t = tierForScore(n);
-                  const active = draft === n;
-                  return (
-                    <button
-                      key={n}
-                      role="radio"
-                      aria-checked={active}
-                      aria-label={`${n} out of 10`}
-                      onClick={() => setDraft(n)}
-                      className="flex aspect-square items-center justify-center rounded-lg text-[13px] font-black tabular-nums outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-waku-400"
-                      style={{
-                        background: t.soft,
-                        color: t.text,
-                        boxShadow: active ? `inset 0 0 0 2px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
-                        transform: active ? "scale(1.12)" : undefined,
-                      }}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
+              {/* 0–10 decimal selector */}
+              <div className="mt-6">
+                <ScoreSlider value={draft} onChange={setDraft} />
               </div>
 
               {/* actions */}
@@ -178,14 +156,14 @@ export function RatingPrompt() {
                         Not now
                       </Button>
                       <Button variant="glass" size="md" className="flex-1" onClick={save}>
-                        Save {draft}
+                        Save {formatScore(draft)}
                       </Button>
                     </div>
                   </>
                 ) : (
                   <>
                     <Button variant="accent" size="lg" className="w-full glow-accent" onClick={save}>
-                      Save {draft} / 10
+                      Save {formatScore(draft)} / 10
                     </Button>
                     <Button variant="ghost" size="md" className="w-full" onClick={clearPendingRate}>
                       Not now

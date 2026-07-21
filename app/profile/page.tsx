@@ -311,7 +311,7 @@ export default function ProfilePage() {
             <StatTile icon={<Film className="h-3.5 w-3.5" />} label="Tracked" value={stats.total} />
             <StatTile icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Completed" value={stats.completed} />
             <StatTile icon={<Clock className="h-3.5 w-3.5" />} label="Hours" value={stats.hours.toLocaleString()} />
-            <StatTile icon={<Star className="h-3.5 w-3.5" />} label="Avg grade" value={stats.avg ? tierForScore(stats.avg).grade : "–"} />
+            <StatTile icon={<Star className="h-3.5 w-3.5" />} label="Avg score" value={stats.avg ? formatScore(stats.avg) : "–"} />
             <StatTile icon={<Percent className="h-3.5 w-3.5" />} label="Completion" value={`${stats.completionRate}%`} />
             <StatTile icon={<BookOpen className="h-3.5 w-3.5" />} label="Chapters" value={stats.chapters.toLocaleString()} />
             <StatTile icon={<Heart className="h-3.5 w-3.5" />} label="Favorites" value={stats.favorites} />

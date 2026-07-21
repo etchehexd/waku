@@ -17,9 +17,9 @@ import type { MediaSummary } from "@/lib/anilist/types";
 import { useWaku, STATUS_LABEL, STATUS_ORDER, type WatchStatus } from "@/lib/store";
 import { STATUS_META } from "./status-meta";
 import { ProgressStepper } from "./progress-stepper";
-import { tierForScore } from "@/lib/rating";
+import { ScoreSlider } from "./score-slider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { cn } from "@/lib/utils";
+import { cn, formatScore } from "@/lib/utils";
 
 interface ActionSheetProps {
   media: MediaSummary;
@@ -27,7 +27,6 @@ interface ActionSheetProps {
   onClose: () => void;
 }
 
-const RATING_SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 /** What each status means when adding, so the one-tap choice is obvious. */
 const ADD_HINT: Record<WatchStatus, { anime: string; manga: string }> = {
   CURRENT: { anime: "Watching now", manga: "Reading now" },
@@ -62,6 +61,12 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
   const removeEntry = useWaku((s) => s.removeEntry);
 
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Local draft for the decimal rating slider; committed to the store on release.
+  const [rateDraft, setRateDraft] = useState(entry?.score ?? 7.5);
+  useEffect(() => {
+    if (open) setRateDraft(entry?.score ?? 7.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, media.id]);
 
   const inList = !!entry;
   const title = media.title.english || media.title.romaji || media.title.native || "";
@@ -238,35 +243,16 @@ export function ActionSheet({ media, open, onClose }: ActionSheetProps) {
 
                     {/* rating — only once finished */}
                     <div>
-                      <Label hint={canRate && entry.score != null ? `${Math.round(entry.score)} / 10` : undefined}>
+                      <Label hint={canRate && entry.score != null ? `${formatScore(entry.score)} / 10` : undefined}>
                         Your rating
                       </Label>
                       {canRate ? (
                         <>
-                          <div className="grid grid-cols-10 gap-1">
-                            {RATING_SCORES.map((n) => {
-                              const t = tierForScore(n);
-                              const active = entry.score != null && Math.round(entry.score) === n;
-                              return (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  aria-pressed={active}
-                                  aria-label={`${n} out of 10`}
-                                  onClick={() => rateById(media.id, n)}
-                                  className="flex aspect-square items-center justify-center rounded-lg text-[13px] font-black tabular-nums outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-waku-400"
-                                  style={{
-                                    background: t.soft,
-                                    color: t.text,
-                                    boxShadow: active ? `inset 0 0 0 2px ${t.color}` : `inset 0 0 0 1px ${t.color}33`,
-                                    transform: active ? "scale(1.12)" : undefined,
-                                  }}
-                                >
-                                  {n}
-                                </button>
-                              );
-                            })}
-                          </div>
+                          <ScoreSlider
+                            value={rateDraft}
+                            onChange={setRateDraft}
+                            onCommit={(v) => rateById(media.id, v)}
+                          />
                           <button
                             type="button"
                             onClick={() => requestRate(media.id)}

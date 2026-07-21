@@ -114,9 +114,6 @@ export function DetailHero({ media }: { media: MediaDetail }) {
               <h1 className="mt-1 font-display text-2xl font-extrabold leading-[1.02] tracking-tight text-white [overflow-wrap:anywhere] sm:text-4xl">
                 {title}
               </h1>
-              {media.title.native && media.title.native !== title && (
-                <p className="mt-1 text-xs text-white/40 [overflow-wrap:anywhere] sm:text-sm">{media.title.native}</p>
-              )}
 
               {media.genres.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">

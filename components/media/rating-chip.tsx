@@ -2,7 +2,7 @@
 
 import { Star } from "lucide-react";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
-import { cn } from "@/lib/utils";
+import { cn, formatScore } from "@/lib/utils";
 
 type ChipSize = "xs" | "sm" | "md";
 
@@ -13,7 +13,7 @@ const SIZE: Record<ChipSize, { box: string; icon: string; text: string; gap: str
 };
 
 /**
- * Tier-tinted rating pill — a filled star + the whole-number score (1–10). The
+ * Tier-tinted rating pill — a filled star + the 0–10 score (one decimal). The
  * standard way a user's rating shows on library items; unrated entries get a
  * quiet outlined mark rather than a loud placeholder.
  */
@@ -63,10 +63,10 @@ export function RatingChip({
         color: tier.text,
         boxShadow: perfect ? `inset 0 0 0 1px ${GOLD}` : `inset 0 0 0 1px ${tier.color}66`,
       }}
-      title={`Your rating: ${Math.round(score!)} / 10 · ${tier.label}`}
+      title={`Your rating: ${formatScore(score)} / 10 · ${tier.label}`}
     >
       <Star className={cn(dim.icon, "fill-current")} aria-hidden />
-      {Math.round(score!)}
+      {formatScore(score)}
     </span>
   );
 }
