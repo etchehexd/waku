@@ -57,7 +57,7 @@ export function MediaActions({ media }: { media: MediaSummary }) {
       <Button
         variant="accent"
         size="md"
-        className="w-full px-6 glow-accent sm:w-auto"
+        className="w-full px-6 sm:w-auto"
         onClick={() => guard(() => {})}
       >
         <Plus className="h-4 w-4" /> Sign in to track &amp; rate
@@ -73,7 +73,7 @@ export function MediaActions({ media }: { media: MediaSummary }) {
         <Button
           variant="accent"
           size="md"
-          className="w-full px-6 glow-accent sm:w-auto"
+          className="w-full px-6 sm:w-auto"
           onClick={() => setSheetOpen(true)}
         >
           <Plus className="h-4 w-4" /> Add to Library
@@ -163,7 +163,6 @@ export function MediaActions({ media }: { media: MediaSummary }) {
               <Button
                 variant="accent"
                 size="sm"
-                className="glow-accent"
                 onClick={complete}
                 aria-label={`Mark ${title} completed`}
               >

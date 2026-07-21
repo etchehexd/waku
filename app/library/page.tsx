@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   useEntriesList,
+  useWaku,
   STATUS_LABEL,
   STATUS_ORDER,
   type LibraryEntry,
@@ -56,6 +57,7 @@ const TYPE_TABS: { value: TypeFilter; label: string }[] = [
 export default function LibraryPage() {
   const mounted = useMounted();
   const entries = useEntriesList();
+  const rankOrder = useWaku((s) => s.rankOrder);
 
   const sort = useLibraryPrefs((s) => s.sort);
   const setSort = useLibraryPrefs((s) => s.setSort);
@@ -118,19 +120,27 @@ export default function LibraryPage() {
     };
   }, [inType]);
 
+  // Head-to-head placement, so "sort by score" breaks ties the same way the
+  // Rankings page does rather than falling back to insertion order.
+  const rankPos = useMemo(() => {
+    const m = new Map<number, number>();
+    rankOrder.forEach((id, i) => m.set(id, i));
+    return m;
+  }, [rankOrder]);
+
   // Status-grouped, each sorted by the active sort (used when not filtering).
   const grouped = useMemo(() => {
     const map = {} as Record<WatchStatus, LibraryEntry[]>;
     for (const s of STATUS_ORDER) map[s] = [];
     for (const e of inType) map[e.status].push(e);
-    for (const s of STATUS_ORDER) map[s].sort((a, b) => compareEntries(a, b, sort));
+    for (const s of STATUS_ORDER) map[s].sort((a, b) => compareEntries(a, b, sort, rankPos));
     return map;
-  }, [inType, sort]);
+  }, [inType, sort, rankPos]);
 
   // Flat filtered set (used while searching / filtering).
   const results = useMemo(
-    () => applyLibrary(entries, { search, statusTab, filters, sort }),
-    [entries, search, statusTab, filters, sort],
+    () => applyLibrary(entries, { search, statusTab, filters, sort }, rankPos),
+    [entries, search, statusTab, filters, sort, rankPos],
   );
 
   if (!mounted) return <PageShell />;

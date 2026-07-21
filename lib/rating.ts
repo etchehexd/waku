@@ -9,6 +9,25 @@
  * picked directly. Colours stay cohesive with the dark-navy palette and AA-legible.
  */
 
+/**
+ * THE precision standard for every score in the app: 0–10 in 0.1 increments.
+ *
+ * One decimal, everywhere — the rating gauge, Smart Rating's derived scores,
+ * rankings, cards, averages. Anything that produces a score MUST pass it
+ * through {@link snapScore} rather than doing its own arithmetic: that keeps
+ * the whole app on one grid and kills float drift (7.3 stays 7.3, never
+ * 7.299999999999999, which would break exact tie detection in the rankings).
+ */
+export const SCORE_MIN = 0;
+export const SCORE_MAX = 10;
+export const SCORE_STEP = 0.1;
+
+/** Clamp to 0–10 and snap to the nearest 0.1. The only way to make a score. */
+export function snapScore(n: number): number {
+  const clamped = Math.max(SCORE_MIN, Math.min(SCORE_MAX, n));
+  return Math.round(clamped * 10) / 10;
+}
+
 export type TierKey =
   | "unrated"
   | "terrible"

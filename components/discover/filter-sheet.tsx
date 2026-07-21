@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SlidersHorizontal, Search, RotateCcw } from "lucide-react";
 import { Sheet, SheetSection } from "@/components/ui/sheet";
+import { SCORE_STEP } from "@/lib/rating";
 import { Button } from "@/components/ui/button";
 import { ThreeStateChip, nextState, type TriState } from "./three-state-chip";
 import {
@@ -217,7 +218,7 @@ function FilterBody({
           type="range"
           min={0}
           max={10}
-          step={0.5}
+          step={SCORE_STEP}
           value={filters.minScore}
           onChange={(e) => patch({ minScore: Number(e.target.value) })}
           aria-label="Minimum score"

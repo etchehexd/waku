@@ -4,7 +4,6 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Navbar } from "@/components/layout/navbar";
 import { AuthGate } from "@/components/auth/auth-gate";
-import { OrnamentBackdrop } from "@/components/layout/ornament-backdrop";
 import { ThemeApplier } from "@/components/layout/theme-applier";
 import { THEME_STORAGE_KEY, DEFAULT_PALETTE } from "@/lib/theme";
 
@@ -61,7 +60,6 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         <Providers>
           <ThemeApplier />
-          <OrnamentBackdrop />
           <AuthGate>
             <Navbar />
             <main className="pb-24 pt-14 md:pb-16 md:pt-0">{children}</main>

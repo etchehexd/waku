@@ -9,8 +9,10 @@ import {
   pairKey,
   type Comparison,
   type Anchor,
-  SMART_MIN_REFERENCES,
+  SMART_MIN_MANUAL_RATINGS,
 } from "./smart-rating";
+import { computeRankOrder, sortByRankOrder } from "./rank-order";
+import { snapScore } from "./rating";
 
 export type WatchStatus =
   | "CURRENT"
@@ -164,6 +166,30 @@ export function isRateable(entry: Pick<LibraryEntry, "status"> | undefined | nul
   return !!entry && (entry.status === "COMPLETED" || entry.status === "REWATCHING");
 }
 
+/**
+ * How many titles the user has scored BY HAND — the number the Smart Rating
+ * gate is measured against. @see SMART_MIN_MANUAL_RATINGS
+ *
+ * Counts anchors as well as currently-manual entries, and that matters: Smart
+ * Rating a title you'd previously rated by hand flips its `smart` flag, so a
+ * naive `!e.smart` count would DROP as the user used the feature and could
+ * re-lock it underneath them. An anchor records "you judged this yourself",
+ * which stays true afterwards. Stale anchors for deleted titles are ignored.
+ */
+export function countManualRatings(
+  entries: Record<number, LibraryEntry>,
+  anchors: Anchor[],
+): number {
+  const ids = new Set<number>();
+  for (const e of Object.values(entries)) {
+    if (e.score != null && !e.smart) ids.add(e.media.id);
+  }
+  for (const a of anchors) {
+    if (entries[a.mediaId]?.score != null) ids.add(a.mediaId);
+  }
+  return ids.size;
+}
+
 export interface LibraryEntry {
   media: MediaSnapshot;
   status: WatchStatus;
@@ -233,6 +259,15 @@ interface WakuState {
   smartScores: Record<number, number>;
   /** overall-rank history per mediaId (records begin after this feature ships) */
   rankHistory: Record<number, RankSnapshot[]>;
+  /**
+   * The persisted ranking order: every rated mediaId, best → worst.
+   *
+   * This is what makes head-to-head placement durable. Score alone can't order
+   * a tie, so the resolved order (score bucket, then comparison graph — see
+   * lib/rank-order.ts) is stored rather than re-derived from scratch with a
+   * different answer each load. Refreshed by {@link WakuState.refreshRanking}.
+   */
+  rankOrder: number[];
   /** ephemeral: mediaId currently awaiting a rating (drives the global modal) */
   pendingRate: number | null;
 
@@ -274,11 +309,20 @@ interface WakuState {
    */
   undoLastComparison: (mediaId?: number) => void;
   recomputeSmart: () => void;
+  /** True once the user has manually rated {@link SMART_MIN_MANUAL_RATINGS} titles. */
   smartUnlocked: () => boolean;
+  /** How many titles the user has rated by hand (Smart scores don't count). */
+  manualRatedCount: () => number;
 
   // --- rankings ---
-  /** Recompute overall ranks and append a snapshot wherever a rank changed. */
-  recordRankSnapshots: () => void;
+  /**
+   * Re-resolve the ranking order (score tier + head-to-head placement), persist
+   * it, and append a rank snapshot wherever a title's position changed.
+   *
+   * Call this after ANYTHING that can move a title: a new score, a comparison,
+   * an undo, a removal. It is the single place rank order is written.
+   */
+  refreshRanking: () => void;
 
   // --- profile ---
   updateProfile: (patch: Partial<UserProfile>) => void;
@@ -297,6 +341,8 @@ export interface CloudSnapshot {
   anchors: Anchor[];
   smartScores: Record<number, number>;
   rankHistory?: Record<number, RankSnapshot[]>;
+  /** Persisted head-to-head ranking order — optional on legacy snapshots. */
+  rankOrder?: number[];
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -316,6 +362,7 @@ export const useWaku = create<WakuState>()(
       anchors: [],
       smartScores: {},
       rankHistory: {},
+      rankOrder: [],
       pendingRate: null,
 
       // A title can only be rated once it's been finished — you can't judge
@@ -426,13 +473,17 @@ export const useWaku = create<WakuState>()(
           };
         }),
 
-      rate: (media, score, smart = false) => {
+      rate: (media, rawScore, smart = false) => {
         // Hard gate: never persist a score for an unfinished title. @see isRateable
         if (!isRateable(get().entries[media.id])) {
           if (process.env.NODE_ENV !== "production")
             console.warn(`[waku] Blocked rate() for ${media.id}: title is not completed.`);
           return;
         }
+        // Every score that reaches storage is on the 0–10 / 0.1 grid, no
+        // exceptions — off-grid values would break exact tie detection in the
+        // rankings. @see snapScore
+        const score = snapScore(rawScore);
         get().upsertEntry(media, { score, smart });
         if (!smart) {
           // manual score becomes / updates an anchor
@@ -444,7 +495,7 @@ export const useWaku = create<WakuState>()(
         get().recomputeSmart();
       },
 
-      rateById: (mediaId, score, smart = false) => {
+      rateById: (mediaId, rawScore, smart = false) => {
         // Hard gate: never persist a score for an unfinished title. This is the
         // last line of defense behind every rating UI. @see isRateable
         if (!isRateable(get().entries[mediaId])) {
@@ -452,6 +503,7 @@ export const useWaku = create<WakuState>()(
             console.warn(`[waku] Blocked rateById() for ${mediaId}: title is not completed.`);
           return;
         }
+        const score = snapScore(rawScore); // 0.1 grid, always. @see snapScore
         set((s) => {
           const e = s.entries[mediaId];
           if (!e) return s;
@@ -471,7 +523,7 @@ export const useWaku = create<WakuState>()(
           const { scores } = computeSmart(s.comparisons, anchors, seeds);
           return { entries, anchors, smartScores: scores };
         });
-        get().recordRankSnapshots();
+        get().refreshRanking();
       },
 
       incrementRewatch: (mediaId) =>
@@ -533,7 +585,7 @@ export const useWaku = create<WakuState>()(
             },
           };
         });
-        get().recordRankSnapshots();
+        get().refreshRanking();
       },
 
       mergeMediaMetadata: (patches) => {
@@ -608,32 +660,48 @@ export const useWaku = create<WakuState>()(
         const seeds = Object.keys(entries).map(Number);
         const { scores } = computeSmart(comparisons, anchors, seeds);
         set({ smartScores: scores });
-        get().recordRankSnapshots();
+        get().refreshRanking();
       },
 
-      recordRankSnapshots: () =>
+      refreshRanking: () =>
         set((s) => {
           const rated = Object.values(s.entries)
             .filter((e) => e.score != null)
-            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+            .map((e) => ({ id: e.media.id, score: e.score as number }));
+          // Score decides the tier; the comparison graph decides placement
+          // inside it; the previous order seeds anything uncompared so nothing
+          // shuffles on its own. @see lib/rank-order.ts
+          const rankOrder = computeRankOrder(rated, s.comparisons, s.rankOrder);
+
           const now = Date.now();
           const rankHistory = { ...s.rankHistory };
-          let changed = false;
-          rated.forEach((e, i) => {
+          let historyChanged = false;
+          rankOrder.forEach((id, i) => {
             const rank = i + 1;
-            const hist = rankHistory[e.media.id] ?? [];
+            const hist = rankHistory[id] ?? [];
             const last = hist[hist.length - 1];
             if (!last || last.rank !== rank) {
-              rankHistory[e.media.id] = [...hist, { rank, at: now }].slice(-MAX_RANK_HISTORY);
-              changed = true;
+              rankHistory[id] = [...hist, { rank, at: now }].slice(-MAX_RANK_HISTORY);
+              historyChanged = true;
             }
           });
-          return changed ? { rankHistory } : s;
+
+          const orderChanged =
+            rankOrder.length !== s.rankOrder.length ||
+            rankOrder.some((id, i) => s.rankOrder[i] !== id);
+          if (!orderChanged && !historyChanged) return s;
+          return {
+            ...(orderChanged ? { rankOrder } : null),
+            ...(historyChanged ? { rankHistory } : null),
+          };
         }),
 
-      smartUnlocked: () =>
-        Object.values(get().entries).filter((e) => e.score != null).length >=
-        SMART_MIN_REFERENCES,
+      manualRatedCount: () => countManualRatings(get().entries, get().anchors),
+
+      // Smart Rating is unlocked by MANUAL ratings only — it works by placing a
+      // title against scores the user chose themselves, so counting its own
+      // derived scores toward the threshold would let it bootstrap off itself.
+      smartUnlocked: () => get().manualRatedCount() >= SMART_MIN_MANUAL_RATINGS,
 
       updateProfile: (patch) =>
         set((s) => ({ profile: { ...s.profile, ...patch } })),
@@ -647,6 +715,7 @@ export const useWaku = create<WakuState>()(
           anchors: s.anchors,
           smartScores: s.smartScores,
           rankHistory: s.rankHistory,
+          rankOrder: s.rankOrder,
         };
       },
 
@@ -687,8 +756,20 @@ export const useWaku = create<WakuState>()(
           }
         }
 
+        // Rank order: seed from whichever side knows about more rated titles,
+        // then re-resolve against the merged scores + comparison set. The seed
+        // only decides pairs with no head-to-head evidence, so a merge can
+        // never contradict a comparison the user actually made.
+        const seed =
+          (remote.rankOrder?.length ?? 0) > local.rankOrder.length
+            ? remote.rankOrder!
+            : local.rankOrder;
+
         const { scores } = computeSmart(comparisons, anchors, Object.keys(entries).map(Number));
         set({ entries, comparisons, anchors, profile, smartScores: scores, rankHistory });
+        // Reuse the one code path that writes rank order + history.
+        set({ rankOrder: seed });
+        get().refreshRanking();
       },
     }),
     {
@@ -716,6 +797,7 @@ export const useWaku = create<WakuState>()(
         anchors: s.anchors,
         smartScores: s.smartScores,
         rankHistory: s.rankHistory,
+        rankOrder: s.rankOrder,
       }),
     },
   ),
@@ -732,4 +814,52 @@ export const useWaku = create<WakuState>()(
 export function useEntriesList(): LibraryEntry[] {
   const entries = useWaku((s) => s.entries);
   return useMemo(() => Object.values(entries), [entries]);
+}
+
+/**
+ * Every rated entry in ranking order: best first.
+ *
+ * Resolves through the same pure function the store persists with
+ * ({@link computeRankOrder}), seeded by the persisted `rankOrder`. So the list
+ * you see is exactly the list that was stored — and a library saved before this
+ * feature existed (empty `rankOrder`) still gets a stable, deterministic order
+ * rather than whatever `Object.values` happened to return.
+ *
+ * NEVER sort rated titles by score alone: that's the bug this replaces — equal
+ * scores fall back to insertion order and head-to-head results are ignored.
+ */
+export function useRankedEntries(): LibraryEntry[] {
+  const entries = useWaku((s) => s.entries);
+  const comparisons = useWaku((s) => s.comparisons);
+  const rankOrder = useWaku((s) => s.rankOrder);
+
+  return useMemo(() => {
+    const rated = Object.values(entries).filter((e) => e.score != null);
+    const order = computeRankOrder(
+      rated.map((e) => ({ id: e.media.id, score: e.score as number })),
+      comparisons,
+      rankOrder,
+    );
+    return sortByRankOrder(rated, (e) => e.media.id, order);
+  }, [entries, comparisons, rankOrder]);
+}
+
+/** Live Smart Rating gate — re-renders the instant the 10th manual rating lands. */
+export function useSmartRatingGate(): {
+  unlocked: boolean;
+  manualCount: number;
+  required: number;
+  remaining: number;
+} {
+  const entries = useWaku((s) => s.entries);
+  const anchors = useWaku((s) => s.anchors);
+  return useMemo(() => {
+    const manualCount = countManualRatings(entries, anchors);
+    return {
+      unlocked: manualCount >= SMART_MIN_MANUAL_RATINGS,
+      manualCount,
+      required: SMART_MIN_MANUAL_RATINGS,
+      remaining: Math.max(0, SMART_MIN_MANUAL_RATINGS - manualCount),
+    };
+  }, [entries, anchors]);
 }

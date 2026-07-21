@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Trophy, BarChart3, Swords, Sigma, Sparkles, Scale } from "lucide-react";
-import { useWaku, useEntriesList, type LibraryEntry } from "@/lib/store";
+import { useWaku, useRankedEntries, type LibraryEntry } from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
 import { median, criticBias } from "@/lib/ranking-stats";
-import { cn } from "@/lib/utils";
+import { cn, formatScore } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { TopThree } from "@/components/rankings/podium";
@@ -36,23 +36,18 @@ const matchesFilter = (e: LibraryEntry, f: Filter) => f === "ALL" || categoryOf(
 
 export default function RankingsPage() {
   const mounted = useMounted();
-  const entries = useEntriesList();
   const comparisons = useWaku((s) => s.comparisons);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [top, setTop] = useState(25);
   const [statsFor, setStatsFor] = useState<LibraryEntry | null>(null);
 
-  const allRated = useMemo(
-    () =>
-      entries
-        .filter((e) => e.score != null)
-        .sort(
-          (a, b) =>
-            (b.score ?? 0) - (a.score ?? 0) ||
-            (a.media.title || "").localeCompare(b.media.title || ""),
-        ),
-    [entries],
-  );
+  /**
+   * Already in ranking order: score picks the tier, head-to-head results pick
+   * the placement within a tie, and the resolved order is the persisted one.
+   * Do NOT re-sort by score here — that would throw away every comparison
+   * result between equally-rated titles (the 10/10 case especially).
+   */
+  const allRated = useRankedEntries();
 
   const ranked = useMemo(() => allRated.filter((e) => matchesFilter(e, filter)), [allRated, filter]);
 
@@ -95,7 +90,7 @@ export default function RankingsPage() {
       <PageHeader
         icon={<Trophy className="h-5 w-5" />}
         title="Rankings"
-        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${Math.round(avg)}` : undefined}
+        meta={ranked.length > 0 ? `${ranked.length} rated · avg ${formatScore(avg)}` : undefined}
       />
 
       {ranked.length === 0 ? (
@@ -114,7 +109,7 @@ export default function RankingsPage() {
             <Insight
               icon={<Sigma className="h-3.5 w-3.5" />}
               label="Median"
-              value={String(Math.round(insights.med))}
+              value={formatScore(insights.med)}
               hint="middle score"
               accent="#6ea8ff"
             />
@@ -321,10 +316,15 @@ function RankRow({
       </div>
 
       <span
-        className={cn("shrink-0 text-right font-black tabular-nums", elite ? "w-11 text-2xl" : "w-9 text-lg")}
+        // Widths fit "10.0" at each size — a one-decimal score is 4 glyphs, so
+        // the old whole-number widths would clip a perfect 10.
+        className={cn(
+          "shrink-0 text-right font-black tabular-nums",
+          elite ? "w-16 text-2xl" : "w-11 text-base",
+        )}
         style={{ color: accent }}
       >
-        {Math.round(entry.score ?? 0)}
+        {formatScore(entry.score)}
       </span>
 
       <button

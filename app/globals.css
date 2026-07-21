@@ -73,14 +73,17 @@
     @apply bg-abyss-950 text-foreground antialiased;
     max-width: 100%;
     overflow-x: clip;
-    /* A quiet, STATIC accent wash — just enough tint at the corners so the
-       canvas isn't flat black, driven by the palette vars so it re-tints with
-       the chosen theme. Deliberately low-opacity and unanimated: calm, not
-       attention-seeking. */
-    background-image:
-      radial-gradient(900px 520px at 82% -10%, hsl(var(--wk-h) var(--wk-s) 58% / 0.06), transparent 62%),
-      radial-gradient(720px 460px at 4% 2%, hsl(var(--ir-h) var(--ir-s) 60% / 0.04), transparent 58%),
-      radial-gradient(1100px 720px at 50% 122%, hsl(var(--wk-h) var(--wk-s) 28% / 0.10), transparent 62%);
+    /* ONE faint accent wash — nothing else. The background's job is to recede,
+       so this is a single, static, very-low-opacity glow at the top of the
+       viewport, driven by the palette vars so it still carries the chosen
+       accent without ever competing with cards, text or buttons. Deliberately
+       not a texture, not a pattern, not animated. */
+    background-image: radial-gradient(
+      1200px 760px at 50% -18%,
+      hsl(var(--wk-h) var(--wk-s) 58% / 0.05),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
     background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
   }
@@ -221,10 +224,10 @@
     /* Restrained lift — a gentle rise + a soft, low-opacity accent edge. No
        bright halo ring; hover should feel responsive, not luminous. */
     transform: translateY(-3px);
-    border-color: hsl(var(--wk-h) var(--wk-s) 70% / 0.32);
+    border-color: hsl(var(--wk-h) var(--wk-s) 70% / 0.26);
     box-shadow:
       0 18px 46px -22px rgba(4, 8, 26, 0.7),
-      0 4px 20px -12px hsl(var(--wk-h) var(--wk-s) 55% / 0.3),
+      0 3px 14px -10px hsl(var(--wk-h) var(--wk-s) 55% / 0.18),
       inset 0 1px 0 0 rgba(255, 255, 255, 0.16);
   }
 
@@ -277,14 +280,14 @@
   /* Soft ring behind the rating dial / key CTAs — restrained, accent-tinted. */
   .ring-glow {
     box-shadow:
-      0 0 0 1px hsl(var(--wk-h) var(--wk-s) 60% / 0.28),
-      0 6px 26px -12px hsl(var(--wk-h) var(--wk-s) 55% / 0.4);
+      0 0 0 1px hsl(var(--wk-h) var(--wk-s) 60% / 0.22),
+      0 3px 14px -8px hsl(var(--wk-h) var(--wk-s) 55% / 0.22);
   }
 
   /* A very soft accent shadow — used sparingly on a primary action. Quiet at
      rest; it should read as depth, not a glow. */
   .glow-accent {
-    box-shadow: 0 3px 16px -8px hsl(var(--wk-h) var(--wk-s) 58% / 0.32);
+    box-shadow: 0 1px 6px -3px hsl(var(--wk-h) var(--wk-s) 52% / 0.16);
   }
 
   /* Accent gradient text — for the odd headline numeral. Kept muted. */

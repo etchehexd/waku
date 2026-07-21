@@ -4,10 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Sparkles, Check } from "lucide-react";
-import { useWaku, isRateable } from "@/lib/store";
+import { X, Sparkles, Check, Lock } from "lucide-react";
+import { useWaku, isRateable, useSmartRatingGate } from "@/lib/store";
 import { useAuthGate } from "@/lib/use-auth-gate";
-import { SMART_MIN_REFERENCES } from "@/lib/smart-rating";
 import { RateGauge, QuickPicks } from "./rate-gauge";
 import { formatScore } from "@/lib/utils";
 
@@ -29,9 +28,9 @@ export function RatingPrompt() {
   const entry = pendingRate != null ? entries[pendingRate] : undefined;
   const previous = entry?.score ?? null;
 
-  const referenceCount = Object.values(entries).filter(
-    (e) => e.score != null && e.media.id !== pendingRate,
-  ).length;
+  // Smart Rating stays locked until 10 manual ratings exist. Reads the live
+  // store gate, so saving the 10th rating unlocks it with no reload.
+  const smart = useSmartRatingGate();
 
   const [draft, setDraft] = useState(previous ?? 7.5);
   const saveRef = useRef<() => void>(() => {});
@@ -59,7 +58,6 @@ export function RatingPrompt() {
   // Guard: only finished titles can be rated. @see isRateable
   const canRate = isRateable(entry);
   const open = pendingRate != null && canRate && !gated;
-  const smartUnlocked = referenceCount >= SMART_MIN_REFERENCES;
 
   const save = () => {
     if (pendingRate != null) rateById(pendingRate, draft);
@@ -146,20 +144,41 @@ export function RatingPrompt() {
                 <Check className="h-5 w-5" /> Save {formatScore(draft)}
               </button>
               <div className="flex items-center gap-2">
-                {smartUnlocked && (
+                {/* Smart Rating is always SHOWN — locked with a reason, never
+                    silently missing, so the feature is discoverable before it's
+                    available. @see useSmartRatingGate */}
+                {smart.unlocked ? (
                   <Link href={`/rate?focus=${pendingRate}`} onClick={clearPendingRate} className="flex-1">
                     <span className="flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-white/10 text-sm font-bold text-white outline-none backdrop-blur-md transition-colors hover:bg-white/15">
                       <Sparkles className="h-4 w-4" /> Smart Rate
                     </span>
                   </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled
+                    title={`Rate ${smart.required} titles by hand to unlock Smart Rating`}
+                    className="flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-white/[0.06] text-sm font-bold text-white/40 backdrop-blur-md"
+                  >
+                    <Lock className="h-4 w-4" /> Smart Rate
+                  </button>
                 )}
                 <button
                   onClick={clearPendingRate}
-                  className={`h-10 rounded-2xl px-4 text-sm font-semibold text-white/60 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 ${smartUnlocked ? "" : "w-full bg-white/5"}`}
+                  className="h-10 rounded-2xl px-4 text-sm font-semibold text-white/60 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                   Not now
                 </button>
               </div>
+              {!smart.unlocked && (
+                <p className="text-center text-[11px] text-white/45">
+                  Rate {smart.required} shows to unlock Smart Rating ·{" "}
+                  <span className="font-bold tabular-nums text-white/65">
+                    {smart.manualCount}/{smart.required}
+                  </span>
+                </p>
+              )}
             </div>
           </motion.div>
         </motion.div>

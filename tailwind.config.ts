@@ -71,14 +71,14 @@ const config: Config = {
           "0 8px 32px -8px rgba(5,10,30,0.6), inset 0 1px 0 0 rgba(255,255,255,0.14), inset 0 -1px 1px 0 rgba(0,0,0,0.35)",
         "glass-lg":
           "0 24px 70px -20px rgba(4,8,26,0.75), inset 0 1px 0 0 rgba(255,255,255,0.18), inset 0 -2px 2px 0 rgba(0,0,0,0.4)",
-        // Accent-driven but RESTRAINED — gentle tinted drop shadows, no bright
-        // 1px halo ring. They re-tint with the palette (built from the hue/sat
-        // vars) yet stay quiet at rest; lean on hover/active for emphasis.
-        glow: "0 4px 18px -8px hsl(var(--wk-h) var(--wk-s) 55% / 0.35)",
-        "glow-iris":
-          "0 4px 18px -8px hsl(var(--ir-h) var(--ir-s) 58% / 0.38)",
-        "glow-accent":
-          "0 2px 12px -5px hsl(var(--wk-h) var(--wk-s) 58% / 0.28)",
+        // Accent-driven but DELIBERATELY QUIET. These are depth cues, not
+        // halos: a short, tight, low-opacity drop shadow that reads as "this
+        // sits above the page" and nothing more. Emphasis comes from the fill
+        // and the hover brightness shift, never from a luminous ring. They
+        // re-tint with the palette (built from the hue/sat vars).
+        glow: "0 2px 8px -4px hsl(var(--wk-h) var(--wk-s) 50% / 0.18)",
+        "glow-iris": "0 2px 8px -4px hsl(var(--ir-h) var(--ir-s) 52% / 0.18)",
+        "glow-accent": "0 1px 6px -3px hsl(var(--wk-h) var(--wk-s) 52% / 0.16)",
       },
       backgroundImage: {
         "glass-sheen":

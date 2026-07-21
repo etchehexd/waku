@@ -175,6 +175,18 @@ export interface BoundedState {
 
 /** Minimum eligible references (besides the target) to run Smart Rating. */
 export const SMART_MIN_REFERENCES = 2;
+
+/**
+ * How many titles the user must have rated BY HAND before Smart Rating unlocks.
+ *
+ * Smart Rating places a title by comparing it against the user's own scores, so
+ * it's only as good as the taste profile behind it. Below this many manual
+ * anchors the derived scores are guesswork dressed up as precision, so the
+ * feature stays locked (visibly, with an explanation — never silently hidden).
+ * Smart-derived scores deliberately do NOT count toward this: the feature must
+ * not bootstrap off its own output. @see useSmartRatingGate
+ */
+export const SMART_MIN_MANUAL_RATINGS = 10;
 /** Interval width (in score points) at which we consider the position pinned. */
 export const SMART_INTERVAL_DONE = 0.2;
 

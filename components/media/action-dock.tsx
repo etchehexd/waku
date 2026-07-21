@@ -122,7 +122,10 @@ function BigCta({
     <div className="glass-chrome rounded-[1.75rem] p-2">
       <button
         onClick={onClick}
-        className="group flex w-full items-center gap-3 rounded-[1.35rem] bg-gradient-to-r from-iris-500 to-waku-600 px-4 py-3 text-left outline-none transition-[filter,transform] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.99]"
+        // Primary accent family only (--wk-h/--wk-s via the `waku` scale) so
+        // this CTA always matches the palette chosen in Settings. Emphasis is
+        // the fill + a brightness shift on hover — no accent glow.
+        className="group flex w-full items-center gap-3 rounded-[1.35rem] bg-gradient-to-r from-waku-500 to-waku-700 px-4 py-3 text-left outline-none ring-1 ring-inset ring-white/12 transition-[filter,transform,box-shadow] hover:brightness-110 hover:ring-white/25 focus-visible:ring-2 focus-visible:ring-white/70 active:scale-[0.99]"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white">
           {icon}
@@ -322,7 +325,7 @@ function StepButton({
       className={cn(
         "flex h-11 w-14 shrink-0 items-center justify-center rounded-xl outline-none transition-all focus-visible:ring-2 focus-visible:ring-waku-400 disabled:cursor-not-allowed disabled:opacity-35",
         plus
-          ? "bg-gradient-to-br from-waku-500 to-iris-600 text-white shadow-glow hover:brightness-110 active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 disabled:shadow-none"
+          ? "bg-gradient-to-br from-waku-500 to-waku-700 text-white shadow-glow ring-1 ring-inset ring-white/10 hover:brightness-110 hover:ring-white/20 active:scale-95 disabled:from-white/10 disabled:to-white/10 disabled:text-white/40 disabled:shadow-none disabled:ring-transparent"
           : "bg-white/[0.06] text-white/80 ring-1 ring-inset ring-white/10 hover:bg-white/[0.12] hover:text-white active:scale-95",
       )}
     >

@@ -6,7 +6,13 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Sparkles, Undo2, SkipForward, ArrowLeft, Trophy, Swords, ImageOff, Lock } from "lucide-react";
-import { useWaku, useEntriesList, isRateable, type LibraryEntry } from "@/lib/store";
+import {
+  useWaku,
+  useEntriesList,
+  isRateable,
+  useSmartRatingGate,
+  type LibraryEntry,
+} from "@/lib/store";
 import { useMounted } from "@/lib/use-mounted";
 import {
   buildReferencePool,
@@ -42,6 +48,7 @@ export function SmartRateClient() {
   const recordComparison = useWaku((s) => s.recordComparison);
   const undoLastComparison = useWaku((s) => s.undoLastComparison);
   const rateById = useWaku((s) => s.rateById);
+  const smart = useSmartRatingGate();
 
   const reduce = useReducedMotion();
 
@@ -126,12 +133,18 @@ export function SmartRateClient() {
   }, [state?.candidateId, choose, undo, skip]);
 
   if (!mounted) return <Shell />;
+  // Gate: Smart Rating needs a real taste profile behind it. Checked here as
+  // well as in the UI that links here, so a bookmarked/typed /rate?focus= URL
+  // can't walk around the lock. @see useSmartRatingGate
+  if (!smart.unlocked) return <SmartLocked gate={smart} focusId={focusId} />;
   if (focusId == null || target == null) return <NoTarget />;
   // Gate: Smart Rating still writes a score, so it obeys the same completion
   // rule as every other rating path. @see isRateable
   if (!isRateable(target)) return <RateLocked target={target} />;
+  // Defensive: the 10-manual-rating gate above already guarantees a pool this
+  // size, but a title can't be compared against nothing.
   if (pool.length < SMART_MIN_REFERENCES) {
-    return <Onboarding have={pool.length} />;
+    return <SmartLocked gate={smart} focusId={focusId} />;
   }
 
   const candidate = state?.candidateId != null ? byId[state.candidateId] : undefined;
@@ -444,34 +457,61 @@ function NoTarget() {
   );
 }
 
-function Onboarding({ have }: { have: number }) {
-  const need = SMART_MIN_REFERENCES;
+/**
+ * The locked state for Smart Rating — shown whenever the user hasn't manually
+ * rated {@link SMART_MIN_MANUAL_RATINGS} titles yet.
+ *
+ * Explains the requirement and shows progress toward it rather than dead-ending
+ * or 404ing, and offers the two things that actually make progress: rating what
+ * they've already finished, or finding more to watch.
+ */
+function SmartLocked({
+  gate,
+  focusId,
+}: {
+  gate: { manualCount: number; required: number; remaining: number };
+  focusId?: number;
+}) {
+  const pct = Math.min(100, (gate.manualCount / gate.required) * 100);
   return (
     <div className="container flex min-h-[70svh] max-w-md flex-col items-center justify-center pt-20 text-center md:pt-24">
       <div className="glass glass-sheen w-full rounded-4xl p-8">
-        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-iris-500/30 to-waku-500/25 text-iris-300">
-          <Sparkles className="h-6 w-6" />
+        <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.06] text-white/50">
+          <Lock className="h-6 w-6" />
         </span>
-        <h1 className="font-display text-xl font-bold text-white">A couple of ratings first</h1>
+        <h1 className="font-display text-xl font-bold text-white">
+          Rate {gate.required} shows to unlock Smart Rating
+        </h1>
         <p className="mt-2 text-sm text-white/55">
-          Smart Rating compares this title against ones you&apos;ve already scored. Rate at least{" "}
-          <span className="font-semibold text-white">{need}</span> other titles, then come back to
-          place this one precisely.
+          Smart Rating places a title by comparing it against scores you set yourself, so it needs a
+          bit of your taste to work from.{" "}
+          {gate.remaining > 0 && (
+            <>
+              <span className="font-semibold text-white">{gate.remaining}</span> more to go.
+            </>
+          )}
         </p>
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-iris-400 to-waku-cinematic transition-all motion-reduce:transition-none"
-            style={{ width: `${Math.min(100, (have / need) * 100)}%` }}
+            className="h-full rounded-full bg-gradient-to-r from-waku-400 to-waku-cinematic transition-all motion-reduce:transition-none"
+            style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="mt-2 text-xs text-white/40">
-          {have} / {need} reference titles rated
+        <p className="mt-2 text-xs tabular-nums text-white/40">
+          {gate.manualCount} / {gate.required} rated by hand
         </p>
-        <Link href="/discover" className="mt-6 inline-block">
-          <Button variant="accent" size="lg">
-            <ArrowLeft className="h-4 w-4" /> Find titles to rate
-          </Button>
-        </Link>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link href={focusId != null ? `/media/${focusId}` : "/library"}>
+            <Button variant="accent" size="lg" className="w-full">
+              {focusId != null ? "Rate it yourself" : "Rate from your library"}
+            </Button>
+          </Link>
+          <Link href="/discover">
+            <Button variant="ghost" size="md" className="w-full">
+              <ArrowLeft className="h-4 w-4" /> Find titles to rate
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

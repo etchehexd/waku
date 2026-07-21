@@ -1,11 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { tierForScore, isPerfect, GOLD } from "@/lib/rating";
+import { tierForScore, isPerfect, GOLD, snapScore, SCORE_STEP } from "@/lib/rating";
 import { cn, formatScore } from "@/lib/utils";
-
-const clamp = (n: number) => Math.max(0, Math.min(10, n));
-const snap = (n: number) => Math.round(n * 2) / 2; // ½-point steps
 
 /**
  * The rating input — a tall vertical gauge you drag to fill.
@@ -14,6 +11,10 @@ const snap = (n: number) => Math.round(n * 2) / 2; // ½-point steps
  * on the column (or use the arrow keys). The score reads out huge alongside it.
  * Built for the immersive, cover-art rating sheet — deliberately nothing like a
  * horizontal slider.
+ *
+ * Precision is 0.1 (see {@link snapScore}). Dragging snaps to that grid;
+ * arrows nudge by 0.1 and Shift+arrow / PageUp / PageDown jump a whole point,
+ * so getting from 7.0 to 9.0 doesn't take twenty keypresses.
  */
 export function RateGauge({
   value,
@@ -34,7 +35,7 @@ export function RateGauge({
     if (!el) return;
     const r = el.getBoundingClientRect();
     const ratio = 1 - (clientY - r.top) / r.height; // top = 10, bottom = 0
-    onChange(snap(clamp(ratio * 10)));
+    onChange(snapScore(ratio * 10));
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -49,14 +50,18 @@ export function RateGauge({
     dragging.current = false;
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Shift turns the fine 0.1 nudge into a whole-point jump.
+    const step = e.shiftKey ? 1 : SCORE_STEP;
     let next: number | null = null;
-    if (e.key === "ArrowUp" || e.key === "ArrowRight") next = clamp(value + 0.5);
-    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") next = clamp(value - 0.5);
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") next = value + step;
+    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") next = value - step;
+    else if (e.key === "PageUp") next = value + 1;
+    else if (e.key === "PageDown") next = value - 1;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = 10;
     if (next != null) {
       e.preventDefault();
-      onChange(next);
+      onChange(snapScore(next));
     }
   };
 
